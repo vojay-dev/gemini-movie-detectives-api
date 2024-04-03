@@ -170,6 +170,11 @@ def get_random():
     return get_random_movie()
 
 
+@app.get('/sessions')
+def get_sessions():
+    return list(session_cache.keys())
+
+
 @app.post('/quiz')
 def start_quiz():
     template = env.get_template('prompt_question.jinja')
