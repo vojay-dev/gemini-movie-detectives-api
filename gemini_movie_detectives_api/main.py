@@ -23,6 +23,10 @@ class SessionData(BaseModel):
     movie: dict
 
 
+class UserAnswer(BaseModel):
+    answer: str
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
@@ -157,12 +161,12 @@ def parse_gemini_answer(gemini_reply: str):
 
 
 @app.get('/movies')
-def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+def get_movies_list(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
     return get_movies(page, vote_avg_min, vote_count_min)
 
 
 @app.get('/movies/random')
-def get_random_movie():
+def get_random():
     return get_random_movie()
 
 
@@ -190,37 +194,37 @@ def start_quiz():
 
     print('prompt:', prompt)
     gemini_reply = get_chat_response(chat, prompt)
-    question = parse_gemini_question(gemini_reply)
+    gemini_question = parse_gemini_question(gemini_reply)
 
     quiz_id = str(uuid.uuid4())
-    session_cache[quiz_id] = SessionData(chat=chat, question=question, movie=movie)
+    session_cache[quiz_id] = SessionData(chat=chat, question=gemini_question, movie=movie)
 
     return {
         'quiz_id': quiz_id,
-        'question': question,
+        'question': gemini_question,
         'movie': movie
     }
 
 
 @app.post('/quiz/{quiz_id}/answer')
-def answer_quiz(quiz_id: str, answer: str):
+def answer_quiz(quiz_id: str, user_answer: UserAnswer):
     session_data = session_cache.get(quiz_id)
 
     if not session_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     template = env.get_template('prompt_answer.jinja')
-    prompt = template.render(answer=answer)
+    prompt = template.render(answer=user_answer.answer)
 
     chat = session_data.chat
     del session_cache[quiz_id]
 
     gemini_reply = get_chat_response(chat, prompt)
-    answer = parse_gemini_answer(gemini_reply)
+    gemini_answer = parse_gemini_answer(gemini_reply)
 
     return {
         'quiz_id': quiz_id,
         'question': session_data.question,
         'movie': session_data.movie,
-        'answer': answer
+        'answer': gemini_answer
     }
