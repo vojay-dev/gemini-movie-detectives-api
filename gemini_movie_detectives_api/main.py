@@ -1,6 +1,8 @@
 import random
+import re
 import uuid
 from functools import lru_cache
+from time import sleep
 from typing import List
 
 import httpx
@@ -14,6 +16,7 @@ from starlette import status
 from vertexai.generative_models import GenerativeModel, ChatSession
 
 from .config import Settings, TmdbImagesConfiguration, load_tmdb_images_configuration
+from fastapi.middleware.cors import CORSMiddleware
 
 
 class SessionData(BaseModel):
@@ -41,6 +44,21 @@ settings: Settings = get_settings()
 tmdb_images_configuration: TmdbImagesConfiguration = get_tmdb_images_configuration()
 
 app: FastAPI = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:5173",
+]
+
+# noinspection PyTypeChecker
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 credentials = service_account.Credentials.from_service_account_file('gcp-vojay-gemini.json')
 vertexai.init(project=settings.gcp_project_id, location=settings.gcp_location, credentials=credentials)
@@ -119,20 +137,13 @@ def get_chat_response(chat: ChatSession, prompt: str) -> str:
 
 
 def parse_gemini_question(gemini_reply: str):
-    question = None
-    hint1 = None
-    hint2 = None
-
-    for line in gemini_reply.splitlines():
-        if line.startswith('Question:'):
-            question = line[9:].lstrip().rstrip()
-        elif line.startswith('Hint 1:'):
-            hint1 = line[7:].lstrip().rstrip()
-        elif line.startswith('Hint 2:'):
-            hint2 = line[7:].lstrip().rstrip()
-
-    if not question or not hint1 or not hint2:
+    result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
+    if len(result) != 3:
         raise ValueError(f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}')
+
+    question = result[0]
+    hint1 = result[1]
+    hint2 = result[2]
 
     return {
         'question': question,
@@ -177,32 +188,41 @@ def get_sessions():
 
 @app.post('/quiz')
 def start_quiz():
-    template = env.get_template('prompt_question.jinja')
-    movie = get_random_movie()
+    for _ in range(settings.quiz_max_retries):
+        try:
+            template = env.get_template('prompt_question.jinja')
+            movie = get_random_movie()
 
-    genres = [genre['name'] for genre in movie['genres']]
+            genres = [genre['name'] for genre in movie['genres']]
 
-    prompt = template.render(
-        title=movie['title'],
-        tagline=movie['tagline'],
-        overview=movie['overview'],
-        genres=', '.join(genres),
-        budget=movie['budget'],
-        revenue=movie['revenue'],
-        average_rating=movie['vote_average'],
-        rating_count=movie['vote_count'],
-        release_date=movie['release_date'],
-        runtime=movie['runtime']
-    )
+            prompt = template.render(
+                title=movie['title'],
+                tagline=movie['tagline'],
+                overview=movie['overview'],
+                genres=', '.join(genres),
+                budget=movie['budget'],
+                revenue=movie['revenue'],
+                average_rating=movie['vote_average'],
+                rating_count=movie['vote_count'],
+                release_date=movie['release_date'],
+                runtime=movie['runtime']
+            )
 
-    chat = model.start_chat()
+            chat = model.start_chat()
 
-    print('prompt:', prompt)
-    gemini_reply = get_chat_response(chat, prompt)
-    gemini_question = parse_gemini_question(gemini_reply)
+            print('prompt:', prompt)
+            gemini_reply = get_chat_response(chat, prompt)
+            gemini_question = parse_gemini_question(gemini_reply)
 
-    quiz_id = str(uuid.uuid4())
-    session_cache[quiz_id] = SessionData(chat=chat, question=gemini_question, movie=movie)
+            quiz_id = str(uuid.uuid4())
+            session_cache[quiz_id] = SessionData(chat=chat, question=gemini_question, movie=movie)
+        except ValueError as e:
+            print('Error starting quiz:', e)
+            if _ < settings.quiz_max_retries - 1:
+                print('Retrying...')
+                sleep(1)
+            else:
+                raise e
 
     return {
         'quiz_id': quiz_id,
