@@ -2,3 +2,4 @@ __pycache__/
 .venv/
 .env
 gcp-vojay-gemini.json
+gemini-movie-detectives-api_latest.tar.gz
