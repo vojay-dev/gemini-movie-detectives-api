@@ -195,11 +195,29 @@ def get_sessions():
 
 
 @app.post('/quiz')
-def start_quiz():
+def start_quiz(votes: int, rating: int, popularity: int):
     for _ in range(settings.quiz_max_retries):
         try:
             template = env.get_template('prompt_question.jinja')
-            movie = get_random_movie()
+
+            page_min = {
+                3: 1,
+                2: 10,
+                1: 100
+            }.get(popularity, 1)
+
+            page_max = {
+                3: 5,
+                2: 100,
+                1: 300
+            }.get(popularity, 3)
+
+            movie = get_random_movie(
+                page_min=page_min,
+                page_max=page_max,
+                vote_avg_min=float(rating),
+                vote_count_min=float(votes)
+            )
 
             genres = [genre['name'] for genre in movie['genres']]
 
