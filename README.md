@@ -50,7 +50,7 @@ docker build -t gemini-movie-detectives-api .
 **Run**:
 ```sh
 docker run -d --rm --name gemini-movie-detectives-api -p 9091:9091 gemini-movie-detectives-api
-curl -s -X POST localhost:9091/quiz | jq .
+curl -s localhost:9091/movies | jq .
 docker stop gemini-movie-detectives-api
 ```
 
