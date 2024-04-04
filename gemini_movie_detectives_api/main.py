@@ -253,6 +253,7 @@ def answer_quiz(quiz_id: str, user_answer: UserAnswer):
                 'quiz_id': quiz_id,
                 'question': session_data.question,
                 'movie': session_data.movie,
+                'user_answer': user_answer.answer,
                 'answer': gemini_answer
             }
         except ValueError as e:
