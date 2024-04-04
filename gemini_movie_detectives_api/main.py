@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 from starlette import status
 from vertexai.generative_models import GenerativeModel, ChatSession
 
-from .config import Settings, TmdbImagesConfiguration, load_tmdb_images_configuration
+from .config import Settings, TmdbImagesConfiguration, load_tmdb_images_configuration, GENERATION_CONFIG
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -130,7 +130,7 @@ def get_movie_details(movie_id: int):
 
 def get_chat_response(chat: ChatSession, prompt: str) -> str:
     text_response = []
-    responses = chat.send_message(prompt, stream=True)
+    responses = chat.send_message(prompt, generation_config=GENERATION_CONFIG, stream=True)
     for chunk in responses:
         text_response.append(chunk.text)
     return "".join(text_response)
@@ -216,6 +216,12 @@ def start_quiz():
 
             quiz_id = str(uuid.uuid4())
             session_cache[quiz_id] = SessionData(chat=chat, question=gemini_question, movie=movie)
+
+            return {
+                'quiz_id': quiz_id,
+                'question': gemini_question,
+                'movie': movie
+            }
         except ValueError as e:
             print('Error starting quiz:', e)
             if _ < settings.quiz_max_retries - 1:
@@ -224,32 +230,36 @@ def start_quiz():
             else:
                 raise e
 
-    return {
-        'quiz_id': quiz_id,
-        'question': gemini_question,
-        'movie': movie
-    }
-
 
 @app.post('/quiz/{quiz_id}/answer')
 def answer_quiz(quiz_id: str, user_answer: UserAnswer):
-    session_data = session_cache.get(quiz_id)
+    for _ in range(settings.quiz_max_retries):
+        try:
+            session_data = session_cache.get(quiz_id)
 
-    if not session_data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+            if not session_data:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
-    template = env.get_template('prompt_answer.jinja')
-    prompt = template.render(answer=user_answer.answer)
+            template = env.get_template('prompt_answer.jinja')
+            prompt = template.render(answer=user_answer.answer)
 
-    chat = session_data.chat
-    del session_cache[quiz_id]
+            chat = session_data.chat
+            del session_cache[quiz_id]
 
-    gemini_reply = get_chat_response(chat, prompt)
-    gemini_answer = parse_gemini_answer(gemini_reply)
+            gemini_reply = get_chat_response(chat, prompt)
+            gemini_answer = parse_gemini_answer(gemini_reply)
 
-    return {
-        'quiz_id': quiz_id,
-        'question': session_data.question,
-        'movie': session_data.movie,
-        'answer': gemini_answer
-    }
+            return {
+                'quiz_id': quiz_id,
+                'question': session_data.question,
+                'movie': session_data.movie,
+                'answer': gemini_answer
+            }
+        except ValueError as e:
+            print('Error processing answer:', e)
+            if _ < settings.quiz_max_retries - 1:
+                print('Retrying...')
+                sleep(1)
+            else:
+                del session_cache[quiz_id]
+                raise e

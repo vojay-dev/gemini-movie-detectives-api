@@ -3,6 +3,11 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+GENERATION_CONFIG = {
+    'temperature': 0.5
+}
+
+
 class TmdbImagesConfiguration(BaseModel):
     base_url: str
     secure_base_url: str
