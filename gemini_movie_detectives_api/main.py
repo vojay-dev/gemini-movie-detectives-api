@@ -1,6 +1,7 @@
 import random
 import re
 import uuid
+from datetime import datetime
 from functools import lru_cache
 from time import sleep
 from typing import List
@@ -21,9 +22,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    quiz_id: str
     chat: ChatSession
     question: dict
     movie: dict
+    started_at: datetime
 
 
 class UserAnswer(BaseModel):
@@ -60,7 +63,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-credentials = service_account.Credentials.from_service_account_file('gcp-vojay-gemini.json')
+credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 vertexai.init(project=settings.gcp_project_id, location=settings.gcp_location, credentials=credentials)
 model = GenerativeModel('gemini-1.0-pro')
 
@@ -69,8 +72,8 @@ env = Environment(
     autoescape=select_autoescape()
 )
 
-# Cache for quiz session
-session_cache = TTLCache(maxsize=100, ttl=3600)
+# cache for quiz session, ttl = max session duration in seconds
+session_cache = TTLCache(maxsize=100, ttl=600)
 
 
 def get_poster_url(poster_path: str, size='original') -> str:
@@ -183,7 +186,12 @@ def get_random():
 
 @app.get('/sessions')
 def get_sessions():
-    return list(session_cache.keys())
+    return [{
+        'quiz_id': session.quiz_id,
+        'question': session.question,
+        'movie': session.movie,
+        'started_at': session.started_at
+    } for session in session_cache.values()]
 
 
 @app.post('/quiz')
@@ -215,7 +223,13 @@ def start_quiz():
             gemini_question = parse_gemini_question(gemini_reply)
 
             quiz_id = str(uuid.uuid4())
-            session_cache[quiz_id] = SessionData(chat=chat, question=gemini_question, movie=movie)
+            session_cache[quiz_id] = SessionData(
+                quiz_id=quiz_id,
+                chat=chat,
+                question=gemini_question,
+                movie=movie,
+                started_at=datetime.now()
+            )
 
             return {
                 'quiz_id': quiz_id,
