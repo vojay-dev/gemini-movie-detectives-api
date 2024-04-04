@@ -43,6 +43,7 @@ There are more config variables with defaults, which can be used to adjust the d
 
 **Build**:
 ```sh
+docker image rm gemini-movie-detectives-api
 docker build -t gemini-movie-detectives-api .
 ```
 
