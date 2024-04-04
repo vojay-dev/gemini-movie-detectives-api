@@ -1,5 +1,13 @@
 # Gemini Movie Detectives API
 
+This project uses:
+
+* Python 3.12 + FastAPI
+* Poetry for dependency management
+* Docker for deployment
+* TMDB API for movie data
+* VertexAI and Gemini for generating movie quizzes
+
 ## Project setup
 
 **(Optional) Configure poetry to use in-project virtualenvs**:
