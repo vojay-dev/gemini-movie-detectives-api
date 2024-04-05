@@ -27,14 +27,10 @@ class TmdbImagesConfig(BaseModel):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
     tmdb_api_key: str
-    tmdb_vote_avg_min: float = 5.0
-    tmdb_vote_count_min: float = 1000.0
-    tmdb_page_min: int = 1
-    tmdb_page_max: int = 3
-    quiz_max_retries: int = 10
     gcp_project_id: str
     gcp_location: str
     gcp_service_account_file: str
+    quiz_max_retries: int = 10
 
 
 def load_tmdb_images_config(settings: Settings) -> TmdbImagesConfig:

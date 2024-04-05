@@ -47,6 +47,7 @@ tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, get_tmdb_images_conf
 
 app: FastAPI = FastAPI()
 
+# for local development
 origins = [
     "http://localhost",
     "http://localhost:8080",
@@ -124,13 +125,8 @@ def get_movies_list(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: fl
 
 
 @app.get('/movies/random')
-def get_random():
-    return tmdb_client.get_random_movie(
-        settings.tmdb_page_min,
-        settings.tmdb_page_max,
-        settings.tmdb_vote_avg_min,
-        settings.tmdb_vote_count_min
-    )
+def get_random(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+    return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
 
 
 @app.get('/sessions')
