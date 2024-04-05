@@ -32,18 +32,18 @@ class UserAnswer(BaseModel):
 
 
 @lru_cache
-def get_settings() -> Settings:
+def _get_settings() -> Settings:
     return Settings()
 
 
 @lru_cache
-def get_tmdb_images_config() -> TmdbImagesConfig:
-    return load_tmdb_images_config(get_settings())
+def _get_tmdb_images_config() -> TmdbImagesConfig:
+    return load_tmdb_images_config(_get_settings())
 
 
-settings: Settings = get_settings()
+settings: Settings = _get_settings()
 
-tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, get_tmdb_images_config())
+tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
 
 credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 gemini_client: GeminiClient = GeminiClient(settings.gcp_project_id, settings.gcp_location, credentials)
