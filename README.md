@@ -44,7 +44,7 @@ poetry install
 ```sh
 source .venv/bin/activate
 uvicorn gemini_movie_detectives_api.main:app --reload
-curl -s localhost:8000/ | jq .
+curl -s localhost:8000/movies | jq .
 ```
 
 ## Configuration
@@ -87,7 +87,7 @@ docker save gemini-movie-detectives-api:latest | gzip > gemini-movie-detectives-
 ### Get a list of movies
 
 ```sh
-    curl -s localhost:8000/movies | jq .
+curl -s localhost:8000/movies | jq .
 ```
 
 ### Get a customized list of movies
