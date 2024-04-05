@@ -1,12 +1,19 @@
 # Gemini Movie Detectives API
 
-This project uses:
+![logo](doc/logo.png)
+
+Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
+
+## Project overview
 
 * Python 3.12 + FastAPI
 * Poetry for dependency management
 * Docker for deployment
 * TMDB API for movie data
 * VertexAI and Gemini for generating movie quizzes
+
+![system overview](doc/system-overview.png)
+*Movie Detectives - System Overview*
 
 ## Project setup
 
@@ -58,3 +65,5 @@ docker stop gemini-movie-detectives-api
 ```sh
 docker save gemini-movie-detectives-api:latest | gzip > gemini-movie-detectives-api_latest.tar.gz
 ```
+
+## API Example Usage
