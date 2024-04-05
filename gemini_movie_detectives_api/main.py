@@ -119,26 +119,6 @@ def parse_gemini_answer(gemini_reply: str):
     }
 
 
-@app.get('/movies')
-def get_movies_list(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
-    return tmdb_client.get_movies(page, vote_avg_min, vote_count_min)
-
-
-@app.get('/movies/random')
-def get_random(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
-    return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
-
-
-@app.get('/sessions')
-def get_sessions():
-    return [{
-        'quiz_id': session.quiz_id,
-        'question': session.question,
-        'movie': session.movie,
-        'started_at': session.started_at
-    } for session in session_cache.values()]
-
-
 def get_page_min(popularity: int) -> int:
     return {
         3: 1,
@@ -173,6 +153,26 @@ def retry(max_retries: int):
         return wrapper
 
     return decorator
+
+
+@app.get('/movies')
+def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+    return tmdb_client.get_movies(page, vote_avg_min, vote_count_min)
+
+
+@app.get('/movies/random')
+def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+    return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
+
+
+@app.get('/sessions')
+def get_sessions():
+    return [{
+        'quiz_id': session.quiz_id,
+        'question': session.question,
+        'movie': session.movie,
+        'started_at': session.started_at
+    } for session in session_cache.values()]
 
 
 @app.post('/quiz')
@@ -226,7 +226,7 @@ def start_quiz(quiz_config: QuizConfig):
 
 @app.post('/quiz/{quiz_id}/answer')
 @retry(max_retries=settings.quiz_max_retries)
-def answer_quiz(quiz_id: str, user_answer: UserAnswer):
+def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     session_data = session_cache.get(quiz_id)
 
     if not session_data:
