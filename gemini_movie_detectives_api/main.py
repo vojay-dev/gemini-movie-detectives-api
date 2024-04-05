@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime
 from functools import lru_cache
@@ -16,6 +17,8 @@ from vertexai.generative_models import ChatSession
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient
 from .tmdb import TmdbClient
+
+logger = logging.getLogger(__name__)
 
 
 class SessionData(BaseModel):
@@ -99,9 +102,9 @@ def retry(max_retries: int):
                 try:
                     return func(*args, **kwargs)
                 except ValueError as e:
-                    print(f'Error in {func.__name__}: {e}')
+                    logger.error(f'Error in {func.__name__}: {e}')
                     if _ < max_retries - 1:
-                        print('Retrying...')
+                        logger.warning(f'Retrying {func.__name__}...')
                         sleep(1)
                     else:
                         raise e
@@ -160,7 +163,7 @@ def start_quiz(quiz_config: QuizConfig):
 
     chat = gemini_client.start_chat()
 
-    print('prompt:', prompt)
+    logger.debug('starting quiz with generated prompt: %s', prompt)
     gemini_reply = gemini_client.get_chat_response(chat, prompt)
     gemini_question = gemini_client.parse_gemini_question(gemini_reply)
 
@@ -186,6 +189,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     session_data = session_cache.get(quiz_id)
 
     if not session_data:
+        logger.info('session not found: %s', quiz_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
 
     template = env.get_template('prompt_answer.jinja')
@@ -194,6 +198,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     chat = session_data.chat
     del session_cache[quiz_id]
 
+    logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
     gemini_reply = gemini_client.get_chat_response(chat, prompt)
     gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
 

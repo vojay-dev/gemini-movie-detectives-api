@@ -1,3 +1,4 @@
+import logging
 import re
 
 import vertexai
@@ -6,11 +7,16 @@ from vertexai.generative_models import GenerativeModel, ChatSession
 
 from .config import GENERATION_CONFIG
 
+logger = logging.getLogger(__name__)
+
 
 class GeminiClient:
 
     def __init__(self, project_id: str, location: str, credentials: Credentials, model: str = 'gemini-1.0-pro'):
         vertexai.init(project=project_id, location=location, credentials=credentials)
+
+        logger.info('loading model: %s', model)
+        logger.info('generation config: %s', GENERATION_CONFIG)
         self.model = GenerativeModel(model)
 
     def start_chat(self) -> ChatSession:
@@ -28,7 +34,9 @@ class GeminiClient:
     def parse_gemini_question(gemini_reply: str):
         result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
         if len(result) != 3:
-            raise ValueError(f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}')
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
+            logger.warning(msg)
+            raise ValueError(msg)
 
         question = result[0]
         hint1 = result[1]
