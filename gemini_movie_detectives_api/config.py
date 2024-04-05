@@ -8,7 +8,13 @@ GENERATION_CONFIG = {
 }
 
 
-class TmdbImagesConfiguration(BaseModel):
+class QuizConfig(BaseModel):
+    vote_avg_min: float
+    vote_count_min: float
+    popularity: int
+
+
+class TmdbImagesConfig(BaseModel):
     base_url: str
     secure_base_url: str
     backdrop_sizes: list[str]
@@ -31,9 +37,9 @@ class Settings(BaseSettings):
     gcp_service_account_file: str
 
 
-def load_tmdb_images_configuration(settings: Settings) -> TmdbImagesConfiguration:
+def load_tmdb_images_config(settings: Settings) -> TmdbImagesConfig:
     response = httpx.get('https://api.themoviedb.org/3/configuration', headers={
         'Authorization': f'Bearer {settings.tmdb_api_key}'
     })
 
-    return TmdbImagesConfiguration(**response.json()['images'])
+    return TmdbImagesConfig(**response.json()['images'])

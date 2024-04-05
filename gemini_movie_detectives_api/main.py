@@ -1,23 +1,22 @@
-import random
 import re
 import uuid
 from datetime import datetime
 from functools import lru_cache
+from functools import wraps
 from time import sleep
-from typing import List
 
-import httpx
 import vertexai
 from cachetools import TTLCache
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi import HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from jinja2 import Environment, PackageLoader, select_autoescape
 from pydantic import BaseModel, ConfigDict
-from starlette import status
 from vertexai.generative_models import GenerativeModel, ChatSession
 
-from .config import Settings, TmdbImagesConfiguration, load_tmdb_images_configuration, GENERATION_CONFIG
-from fastapi.middleware.cors import CORSMiddleware
+from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, GENERATION_CONFIG, QuizConfig
+from .tmdb import TmdbClient
 
 
 class SessionData(BaseModel):
@@ -39,12 +38,12 @@ def get_settings() -> Settings:
 
 
 @lru_cache
-def get_tmdb_images_configuration() -> TmdbImagesConfiguration:
-    return load_tmdb_images_configuration(get_settings())
+def get_tmdb_images_config() -> TmdbImagesConfig:
+    return load_tmdb_images_config(get_settings())
 
 
 settings: Settings = get_settings()
-tmdb_images_configuration: TmdbImagesConfiguration = get_tmdb_images_configuration()
+tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, get_tmdb_images_config())
 
 app: FastAPI = FastAPI()
 
@@ -74,61 +73,6 @@ env = Environment(
 
 # cache for quiz session, ttl = max session duration in seconds
 session_cache = TTLCache(maxsize=100, ttl=600)
-
-
-def get_poster_url(poster_path: str, size='original') -> str:
-    base_url = tmdb_images_configuration.secure_base_url
-
-    if size not in tmdb_images_configuration.poster_sizes:
-        size = 'original'
-
-    return f'{base_url}{size}{poster_path}'
-
-
-def get_movies(page: int, vote_avg_min: float, vote_count_min: float) -> List[dict]:
-    response = httpx.get('https://api.themoviedb.org/3/discover/movie', headers={
-        'Authorization': f'Bearer {settings.tmdb_api_key}'
-    }, params={
-        'sort_by': 'popularity.desc',
-        'include_adult': 'false',
-        'include_video': 'false',
-        'language': 'en-US',
-        'with_original_language': 'en',
-        'vote_average.gte': vote_avg_min,
-        'vote_count.gte': vote_count_min,
-        'page': page
-    })
-
-    movies = response.json()['results']
-
-    for movie in movies:
-        movie['poster_url'] = get_poster_url(movie['poster_path'])
-
-    return movies
-
-
-def get_random_movie(
-    page_min: int = settings.tmdb_page_min,
-    page_max: int = settings.tmdb_page_max,
-    vote_avg_min: float = settings.tmdb_vote_avg_min,
-    vote_count_min: float = settings.tmdb_vote_count_min
-):
-    movies = get_movies(random.randint(page_min, page_max), vote_avg_min, vote_count_min)
-    return get_movie_details(random.choice(movies)['id'])
-
-
-@lru_cache(maxsize=1024)
-def get_movie_details(movie_id: int):
-    response = httpx.get(f'https://api.themoviedb.org/3/movie/{movie_id}', headers={
-        'Authorization': f'Bearer {settings.tmdb_api_key}'
-    }, params={
-        'language': 'en-US'
-    })
-
-    movie = response.json()
-    movie['poster_url'] = get_poster_url(movie['poster_path'])
-
-    return movie
 
 
 def get_chat_response(chat: ChatSession, prompt: str) -> str:
@@ -176,12 +120,17 @@ def parse_gemini_answer(gemini_reply: str):
 
 @app.get('/movies')
 def get_movies_list(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
-    return get_movies(page, vote_avg_min, vote_count_min)
+    return tmdb_client.get_movies(page, vote_avg_min, vote_count_min)
 
 
 @app.get('/movies/random')
 def get_random():
-    return get_random_movie()
+    return tmdb_client.get_random_movie(
+        settings.tmdb_page_min,
+        settings.tmdb_page_max,
+        settings.tmdb_vote_avg_min,
+        settings.tmdb_vote_count_min
+    )
 
 
 @app.get('/sessions')
@@ -194,105 +143,112 @@ def get_sessions():
     } for session in session_cache.values()]
 
 
+def get_page_min(popularity: int) -> int:
+    return {
+        3: 1,
+        2: 10,
+        1: 100
+    }.get(popularity, 1)
+
+
+def get_page_max(popularity: int) -> int:
+    return {
+        3: 5,
+        2: 100,
+        1: 300
+    }.get(popularity, 3)
+
+
+def retry(max_retries: int):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for _ in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except ValueError as e:
+                    print(f"Error in {func.__name__}: {e}")
+                    if _ < max_retries - 1:
+                        print('Retrying...')
+                        sleep(1)
+                    else:
+                        raise e
+
+        return wrapper
+
+    return decorator
+
+
 @app.post('/quiz')
-def start_quiz(votes: int, rating: int, popularity: int):
-    for _ in range(settings.quiz_max_retries):
-        try:
-            template = env.get_template('prompt_question.jinja')
+@retry(max_retries=settings.quiz_max_retries)
+def start_quiz(quiz_config: QuizConfig):
+    template = env.get_template('prompt_question.jinja')
 
-            page_min = {
-                3: 1,
-                2: 10,
-                1: 100
-            }.get(popularity, 1)
+    movie = tmdb_client.get_random_movie(
+        page_min=get_page_min(quiz_config.popularity),
+        page_max=get_page_max(quiz_config.popularity),
+        vote_avg_min=quiz_config.vote_avg_min,
+        vote_count_min=quiz_config.vote_avg_max
+    )
 
-            page_max = {
-                3: 5,
-                2: 100,
-                1: 300
-            }.get(popularity, 3)
+    genres = [genre['name'] for genre in movie['genres']]
 
-            movie = get_random_movie(
-                page_min=page_min,
-                page_max=page_max,
-                vote_avg_min=float(rating),
-                vote_count_min=float(votes)
-            )
+    prompt = template.render(
+        title=movie['title'],
+        tagline=movie['tagline'],
+        overview=movie['overview'],
+        genres=', '.join(genres),
+        budget=movie['budget'],
+        revenue=movie['revenue'],
+        average_rating=movie['vote_average'],
+        rating_count=movie['vote_count'],
+        release_date=movie['release_date'],
+        runtime=movie['runtime']
+    )
 
-            genres = [genre['name'] for genre in movie['genres']]
+    chat = model.start_chat()
 
-            prompt = template.render(
-                title=movie['title'],
-                tagline=movie['tagline'],
-                overview=movie['overview'],
-                genres=', '.join(genres),
-                budget=movie['budget'],
-                revenue=movie['revenue'],
-                average_rating=movie['vote_average'],
-                rating_count=movie['vote_count'],
-                release_date=movie['release_date'],
-                runtime=movie['runtime']
-            )
+    print('prompt:', prompt)
+    gemini_reply = get_chat_response(chat, prompt)
+    gemini_question = parse_gemini_question(gemini_reply)
 
-            chat = model.start_chat()
+    quiz_id = str(uuid.uuid4())
+    session_cache[quiz_id] = SessionData(
+        quiz_id=quiz_id,
+        chat=chat,
+        question=gemini_question,
+        movie=movie,
+        started_at=datetime.now()
+    )
 
-            print('prompt:', prompt)
-            gemini_reply = get_chat_response(chat, prompt)
-            gemini_question = parse_gemini_question(gemini_reply)
-
-            quiz_id = str(uuid.uuid4())
-            session_cache[quiz_id] = SessionData(
-                quiz_id=quiz_id,
-                chat=chat,
-                question=gemini_question,
-                movie=movie,
-                started_at=datetime.now()
-            )
-
-            return {
-                'quiz_id': quiz_id,
-                'question': gemini_question,
-                'movie': movie
-            }
-        except ValueError as e:
-            print('Error starting quiz:', e)
-            if _ < settings.quiz_max_retries - 1:
-                print('Retrying...')
-                sleep(1)
-            else:
-                raise e
+    return {
+        'quiz_id': quiz_id,
+        'question': gemini_question,
+        'movie': movie
+    }
 
 
 @app.post('/quiz/{quiz_id}/answer')
+@retry(max_retries=settings.quiz_max_retries)
 def answer_quiz(quiz_id: str, user_answer: UserAnswer):
-    for _ in range(settings.quiz_max_retries):
-        try:
-            session_data = session_cache.get(quiz_id)
+    session_data = session_cache.get(quiz_id)
 
-            if not session_data:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    if not session_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
-            template = env.get_template('prompt_answer.jinja')
-            prompt = template.render(answer=user_answer.answer)
+    template = env.get_template('prompt_answer.jinja')
+    prompt = template.render(answer=user_answer.answer)
 
-            chat = session_data.chat
-            del session_cache[quiz_id]
+    chat = session_data.chat
+    del session_cache[quiz_id]
 
-            gemini_reply = get_chat_response(chat, prompt)
-            gemini_answer = parse_gemini_answer(gemini_reply)
+    gemini_reply = get_chat_response(chat, prompt)
+    gemini_answer = parse_gemini_answer(gemini_reply)
 
-            return {
-                'quiz_id': quiz_id,
-                'question': session_data.question,
-                'movie': session_data.movie,
-                'user_answer': user_answer.answer,
-                'answer': gemini_answer
-            }
-        except ValueError as e:
-            print('Error processing answer:', e)
-            if _ < settings.quiz_max_retries - 1:
-                print('Retrying...')
-                sleep(1)
-            else:
-                del session_cache[quiz_id]
-                raise e
+    return {
+        'quiz_id': quiz_id,
+        'question': session_data.question,
+        'movie': session_data.movie,
+        'user_answer': user_answer.answer,
+        'answer': gemini_answer
+    }
