@@ -10,12 +10,12 @@ from fastapi import FastAPI
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
-from jinja2 import Environment, PackageLoader, select_autoescape
 from pydantic import BaseModel, ConfigDict
 from vertexai.generative_models import ChatSession
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient
+from .prompt import PromptGenerator
 from .tmdb import TmdbClient
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_con
 
 credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 gemini_client: GeminiClient = GeminiClient(settings.gcp_project_id, settings.gcp_location, credentials)
+prompt_generator: PromptGenerator = PromptGenerator()
 
 app: FastAPI = FastAPI()
 
@@ -67,11 +68,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
-)
-
-env = Environment(
-    loader=PackageLoader('gemini_movie_detectives_api'),
-    autoescape=select_autoescape()
 )
 
 # cache for quiz session, ttl = max session duration in seconds
@@ -137,8 +133,6 @@ def get_sessions():
 @app.post('/quiz')
 @retry(max_retries=settings.quiz_max_retries)
 def start_quiz(quiz_config: QuizConfig):
-    template = env.get_template('prompt_question.jinja')
-
     movie = tmdb_client.get_random_movie(
         page_min=_get_page_min(quiz_config.popularity),
         page_max=_get_page_max(quiz_config.popularity),
@@ -148,8 +142,8 @@ def start_quiz(quiz_config: QuizConfig):
 
     genres = [genre['name'] for genre in movie['genres']]
 
-    prompt = template.render(
-        title=movie['title'],
+    prompt = prompt_generator.generate_question_prompt(
+        movie_title=movie['title'],
         tagline=movie['tagline'],
         overview=movie['overview'],
         genres=', '.join(genres),
@@ -160,6 +154,8 @@ def start_quiz(quiz_config: QuizConfig):
         release_date=movie['release_date'],
         runtime=movie['runtime']
     )
+
+    print(prompt)
 
     chat = gemini_client.start_chat()
 
@@ -192,8 +188,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
         logger.info('session not found: %s', quiz_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
 
-    template = env.get_template('prompt_answer.jinja')
-    prompt = template.render(answer=user_answer.answer)
+    prompt = prompt_generator.generate_answer_prompt(answer=user_answer.answer)
 
     chat = session_data.chat
     del session_cache[quiz_id]
