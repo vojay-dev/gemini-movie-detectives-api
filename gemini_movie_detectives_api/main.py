@@ -143,7 +143,7 @@ def start_quiz(quiz_config: QuizConfig):
         page_min=_get_page_min(quiz_config.popularity),
         page_max=_get_page_max(quiz_config.popularity),
         vote_avg_min=quiz_config.vote_avg_min,
-        vote_count_min=quiz_config.vote_avg_max
+        vote_count_min=quiz_config.vote_count_min
     )
 
     genres = [genre['name'] for genre in movie['genres']]
@@ -207,5 +207,5 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
         'question': session_data.question,
         'movie': session_data.movie,
         'user_answer': user_answer.answer,
-        'answer': gemini_answer
+        'result': gemini_answer
     }
