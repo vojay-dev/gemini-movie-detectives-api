@@ -1,5 +1,7 @@
 # Gemini Movie Detectives API
 
+Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
+
 ![logo](doc/logo.png)
 Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
 
