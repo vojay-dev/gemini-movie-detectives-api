@@ -52,9 +52,9 @@ app: FastAPI = FastAPI()
 
 # for local development
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
-    "http://localhost:5173",
+    'http://localhost',
+    'http://localhost:8080',
+    'http://localhost:5173',
 ]
 
 # noinspection PyTypeChecker
@@ -62,8 +62,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 env = Environment(
@@ -75,7 +75,7 @@ env = Environment(
 session_cache = TTLCache(maxsize=100, ttl=600)
 
 
-def get_page_min(popularity: int) -> int:
+def _get_page_min(popularity: int) -> int:
     return {
         3: 1,
         2: 10,
@@ -83,7 +83,7 @@ def get_page_min(popularity: int) -> int:
     }.get(popularity, 1)
 
 
-def get_page_max(popularity: int) -> int:
+def _get_page_max(popularity: int) -> int:
     return {
         3: 5,
         2: 100,
@@ -99,7 +99,7 @@ def retry(max_retries: int):
                 try:
                     return func(*args, **kwargs)
                 except ValueError as e:
-                    print(f"Error in {func.__name__}: {e}")
+                    print(f'Error in {func.__name__}: {e}')
                     if _ < max_retries - 1:
                         print('Retrying...')
                         sleep(1)
@@ -137,8 +137,8 @@ def start_quiz(quiz_config: QuizConfig):
     template = env.get_template('prompt_question.jinja')
 
     movie = tmdb_client.get_random_movie(
-        page_min=get_page_min(quiz_config.popularity),
-        page_max=get_page_max(quiz_config.popularity),
+        page_min=_get_page_min(quiz_config.popularity),
+        page_max=_get_page_max(quiz_config.popularity),
         vote_avg_min=quiz_config.vote_avg_min,
         vote_count_min=quiz_config.vote_avg_max
     )
@@ -186,7 +186,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     session_data = session_cache.get(quiz_id)
 
     if not session_data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
 
     template = env.get_template('prompt_answer.jinja')
     prompt = template.render(answer=user_answer.answer)

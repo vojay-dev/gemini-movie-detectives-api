@@ -22,7 +22,7 @@ class GeminiClient:
         responses = chat.send_message(prompt, generation_config=GENERATION_CONFIG, stream=True)
         for chunk in responses:
             text_response.append(chunk.text)
-        return "".join(text_response)
+        return ''.join(text_response)
 
     @staticmethod
     def parse_gemini_question(gemini_reply: str):
