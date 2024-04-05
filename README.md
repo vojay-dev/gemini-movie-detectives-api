@@ -1,16 +1,29 @@
 # Gemini Movie Detectives API
 
 ![logo](doc/logo.png)
-
 Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
+
+- [Project overview](#project-overview)
+- [Project setup](#project-setup)
+- [Configuration](#configuration)
+- [Docker](#docker)
+  - [Build](#build)
+  - [Run](#run)
+  - [Save image for deployment](#save-image-for-deployment)
+- [API Example Usage](#api-example-usage)
+  - [Get a list of movies](#get-a-list-of-movies)
+  - [Get a customized list of movies](#get-a-customized-list-of-movies)
+  - [Get a random movie with more details](#get-a-random-movie-with-more-details)
+  - [Start a quiz](#start-a-quiz)
+  - [Send answer and finish a quiz](#send-answer-and-finish-a-quiz)
 
 ## Project overview
 
-* Python 3.12 + FastAPI
-* Poetry for dependency management
-* Docker for deployment
-* TMDB API for movie data
-* VertexAI and Gemini for generating movie quizzes
+- Python 3.12 + FastAPI
+- Poetry for dependency management
+- Docker for deployment
+- TMDB API for movie data
+- VertexAI and Gemini for generating movie quizzes
 
 ![system overview](doc/system-overview.png)
 *Movie Detectives - System Overview*
@@ -39,10 +52,10 @@ curl -s localhost:8000/ | jq .
 The API is configured via environment variables. If a `.env` file is present in the project root, it will be loaded
 automatically. The following variables must be set:
 
-* `TMDB_API_KEY`: The API key for The Movie Database (TMDB).
-* `GCP_PROJECT_ID`: The ID of the Google Cloud Platform (GCP) project used for VertexAI and Gemini.
-* `GCP_LOCATION`: The location used for prediction processes.
-* `GCP_SERVICE_ACCOUNT_FILE`: The path to the service account file used for authentication with GCP.
+- `TMDB_API_KEY`: The API key for The Movie Database (TMDB).
+- `GCP_PROJECT_ID`: The ID of the Google Cloud Platform (GCP) project used for VertexAI and Gemini.
+- `GCP_LOCATION`: The location used for prediction processes.
+- `GCP_SERVICE_ACCOUNT_FILE`: The path to the service account file used for authentication with GCP.
 
 There are more config variables with defaults, which can be used to adjust the default API behavior.
 
