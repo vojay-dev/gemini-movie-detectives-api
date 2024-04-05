@@ -1,11 +1,9 @@
-import re
 import uuid
 from datetime import datetime
 from functools import lru_cache
 from functools import wraps
 from time import sleep
 
-import vertexai
 from cachetools import TTLCache
 from fastapi import FastAPI
 from fastapi import HTTPException, status
@@ -13,9 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from jinja2 import Environment, PackageLoader, select_autoescape
 from pydantic import BaseModel, ConfigDict
-from vertexai.generative_models import GenerativeModel, ChatSession
+from vertexai.generative_models import ChatSession
 
-from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, GENERATION_CONFIG, QuizConfig
+from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
+from .gemini import GeminiClient
 from .tmdb import TmdbClient
 
 
@@ -43,7 +42,11 @@ def get_tmdb_images_config() -> TmdbImagesConfig:
 
 
 settings: Settings = get_settings()
+
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, get_tmdb_images_config())
+
+credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
+gemini_client: GeminiClient = GeminiClient(settings.gcp_project_id, settings.gcp_location, credentials)
 
 app: FastAPI = FastAPI()
 
@@ -63,10 +66,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
-vertexai.init(project=settings.gcp_project_id, location=settings.gcp_location, credentials=credentials)
-model = GenerativeModel('gemini-1.0-pro')
-
 env = Environment(
     loader=PackageLoader('gemini_movie_detectives_api'),
     autoescape=select_autoescape()
@@ -74,49 +73,6 @@ env = Environment(
 
 # cache for quiz session, ttl = max session duration in seconds
 session_cache = TTLCache(maxsize=100, ttl=600)
-
-
-def get_chat_response(chat: ChatSession, prompt: str) -> str:
-    text_response = []
-    responses = chat.send_message(prompt, generation_config=GENERATION_CONFIG, stream=True)
-    for chunk in responses:
-        text_response.append(chunk.text)
-    return "".join(text_response)
-
-
-def parse_gemini_question(gemini_reply: str):
-    result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
-    if len(result) != 3:
-        raise ValueError(f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}')
-
-    question = result[0]
-    hint1 = result[1]
-    hint2 = result[2]
-
-    return {
-        'question': question,
-        'hint1': hint1,
-        'hint2': hint2
-    }
-
-
-def parse_gemini_answer(gemini_reply: str):
-    points = None
-    answer = None
-
-    for line in gemini_reply.splitlines():
-        if line.startswith('Points:'):
-            points = line[7:].lstrip().rstrip()
-        elif line.startswith('Answer:'):
-            answer = line[7:].lstrip().rstrip()
-
-    if not points or not answer:
-        raise ValueError(f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}')
-
-    return {
-        'points': points,
-        'answer': answer
-    }
 
 
 def get_page_min(popularity: int) -> int:
@@ -202,11 +158,11 @@ def start_quiz(quiz_config: QuizConfig):
         runtime=movie['runtime']
     )
 
-    chat = model.start_chat()
+    chat = gemini_client.start_chat()
 
     print('prompt:', prompt)
-    gemini_reply = get_chat_response(chat, prompt)
-    gemini_question = parse_gemini_question(gemini_reply)
+    gemini_reply = gemini_client.get_chat_response(chat, prompt)
+    gemini_question = gemini_client.parse_gemini_question(gemini_reply)
 
     quiz_id = str(uuid.uuid4())
     session_cache[quiz_id] = SessionData(
@@ -238,8 +194,8 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     chat = session_data.chat
     del session_cache[quiz_id]
 
-    gemini_reply = get_chat_response(chat, prompt)
-    gemini_answer = parse_gemini_answer(gemini_reply)
+    gemini_reply = gemini_client.get_chat_response(chat, prompt)
+    gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
 
     return {
         'quiz_id': quiz_id,
