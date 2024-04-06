@@ -4,7 +4,7 @@
 
 ![logo](doc/logo.png)
 
-Gemini Movie Detectives is a project aimed at leveraging the power of the Gemini 1.0 Pro model via VertexAI to
+Gemini Movie Detectives is a project aimed at leveraging the power of the Gemini Pro model via VertexAI to
 create an engaging quiz game using the latest movie data from The Movie Database (TMDB).
 
 Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
