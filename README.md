@@ -18,6 +18,7 @@ Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
   - [Get a random movie with more details](#get-a-random-movie-with-more-details)
   - [Start a quiz](#start-a-quiz)
   - [Send answer and finish a quiz](#send-answer-and-finish-a-quiz)
+- [Rate Limit](#rate-limit)
 
 ## Project overview
 
@@ -232,3 +233,26 @@ curl -s -X POST localhost:8000/quiz/84c19425-c179-4198-9773-a8a1b71c9605/answer 
   }
 }
 ```
+
+## Rate Limit
+
+In order to control costs and prevent abuse, the API offers a way to limit the number of quiz sessions per day.
+
+There is a default value which can be overwritten by using an environment variable called `QUIZ_RATE_LIMIT`. It is reset
+every day at midnight. The API also has an endpoint to fetch details about the limit and current usage:
+
+```sh
+curl -s localhost:8000/limit | jq .
+```
+
+```json
+{
+  "daily_limit": 100,
+  "quiz_count": 0,
+  "last_reset_time": "2024-04-06T12:39:29.857703",
+  "last_reset_date": "2024-04-06",
+  "current_date": "2024-04-06"
+}
+```
+
+Once a quiz is started and `current_date` is greater than `last_reset_date`, the `quiz_count` is reset to 0.
