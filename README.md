@@ -27,7 +27,10 @@ with the backend.
 In Movie Detectives, quiz answers are interpreted by the Language Model (LLM) once again, allowing for dynamic
 scoring and personalized responses. This showcases the potential of integrating LLM with RAG in game design and
 development, paving the way for truly individualized gaming experiences. Furthermore, it demonstrates the
-potential for creating engaging quiz trivia or educational games by involving LLM.
+potential for creating engaging quiz trivia or educational games by involving LLM. Adding and changing personalities
+or languages is as easy as adding more Jinja template modules. With very little effort, this can change the
+full game experience, reducing the effort for developers. Try it yourself and change the AI personality
+in the quiz configuration.
 
 ![demo](doc/mobile-browser-demo.png)
 
