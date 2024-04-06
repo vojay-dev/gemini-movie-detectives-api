@@ -2,7 +2,7 @@ import httpx
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from gemini_movie_detectives_api.prompt import Personality
+from gemini_movie_detectives_api.prompt import Personality, Language
 
 GENERATION_CONFIG = {
     'temperature': 0.5
@@ -14,6 +14,7 @@ class QuizConfig(BaseModel):
     vote_count_min: float
     popularity: int
     personality: str = Personality.DEFAULT.name
+    language: str = Language.DEFAULT.name
 
 
 class TmdbImagesConfig(BaseModel):
