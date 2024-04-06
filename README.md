@@ -300,6 +300,8 @@ They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, whic
 
 ## Example Usage: Santa Claus Personality
 
+![santa claus](doc/santa-claus-personality.png)
+
 The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
 
 ```sh
