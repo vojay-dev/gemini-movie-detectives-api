@@ -47,6 +47,10 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
   - [Start a quiz](#start-a-quiz)
   - [Send answer and finish a quiz](#send-answer-and-finish-a-quiz)
 - [Rate Limit](#rate-limit)
+- [Personalities](#personalities)
+  - [Example Usage: Santa Claus Personality](#example-usage-santa-claus-personality)
+- [Languages](#languages)
+  - [Example Usage: German Language](#example-usage-german-language)
 
 ## Project overview
 
@@ -288,7 +292,7 @@ Once a quiz is started and `current_date` is greater than `last_reset_date`, the
 # Personalities
 
 Due to the modularity of the prompt generation, it is possible to easily switch personalities of the quiz master. The
-personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personalities/` directory.
+personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personality/` directory.
 They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
 
 ## Example Usage: Santa Claus Personality
@@ -308,6 +312,34 @@ curl -s -X POST localhost:8000/quiz \
     "question": "Ho ho ho, this movie takes place in a world of dreams, just like the dreams children have on Christmas Eve after seeing Santa Claus! It's about a team who enters people's dreams to steal their secrets. Can you guess the movie? Merry Christmas!",
     "hint1": "The main character is like a skilled elf, sneaking into people's minds instead of houses. ",
     "hint2": "I_c_p_i_n "
+  },
+  "movie": {...}
+}
+```
+
+# Languages
+
+Due to the modularity of the prompt generation, it is also possible to easily switch the language of the game.
+Languages are defined in Jinja templates in the `gemini_movie_detectives_api/templates/language/` directory.
+They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
+
+## Example Usage: German Language
+
+The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
+
+```sh
+curl -s -X POST localhost:8000/quiz \
+  -H 'Content-Type: application/json' \
+  -d '{"vote_avg_min": 5.0, "vote_count_min": 1000.0, "popularity": 3, "language": "german"}' | jq .
+```
+
+```json
+{
+  "quiz_id": "7f5f8cf5-4ded-42d3-a6f0-976e4f096c0e",
+  "question": {
+    "question": "Stellt euch vor, es gäbe riesige Monster, die auf der Erde herumtrampeln, als wäre es ein Spielplatz! Einer ist ein echtes Urviech, eine Art wandelnde Riesenechse mit einem Atem, der so heiß ist, dass er euer Toastbrot in Sekundenschnelle rösten könnte. Der andere ist ein gigantischer Affe, der so stark ist, dass er Bäume ausreißt wie Gänseblümchen. Und jetzt ratet mal, was passiert? Die beiden geraten aneinander, wie zwei Kinder, die sich um das letzte Stück Kuchen streiten! Wer wird wohl gewinnen, die Riesenechse oder der Superaffe? Das ist die Frage, die sich die ganze Welt stellt! ",
+    "hint1": "Der Film spielt in einer Zeit, in der Monster auf der Erde wandeln.",
+    "hint2": "G_dz_ll_ vs. K_ng "
   },
   "movie": {...}
 }

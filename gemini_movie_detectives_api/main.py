@@ -197,8 +197,6 @@ def start_quiz(quiz_config: QuizConfig):
         runtime=movie['runtime']
     )
 
-    print(prompt)
-
     chat = gemini_client.start_chat()
 
     logger.debug('starting quiz with generated prompt: %s', prompt)
