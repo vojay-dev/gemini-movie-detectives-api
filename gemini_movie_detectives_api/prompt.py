@@ -8,6 +8,7 @@ class Personality(StrEnum):
     DEFAULT = 'default.jinja'
     CHRISTMAS = 'christmas.jinja'
     SCIENTIST = 'scientist.jinja'
+    DAD = 'dad.jinja'
 
 
 class PromptGenerator:
