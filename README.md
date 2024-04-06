@@ -1,9 +1,33 @@
 # Gemini Movie Detectives API
 
-Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
-
 ![logo](doc/logo.png)
+
+Gemini Movie Detectives is a project aimed at leveraging the power of the Gemini 1.0 Pro model via VertexAI to
+create an engaging quiz game using the latest movie data from The Movie Database (TMDB).
+
 Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
+
+## Backend
+
+The backend infrastructure is built with FastAPI and Python, employing the Retrieval-Augmented Generation (RAG)
+methodology to enrich queries with real-time metadata. Utilizing Jinja templating, the backend modularizes
+prompt generation into base, personality, and data enhancement templates, enabling the generation of accurate
+and engaging quiz questions.
+
+## Frontend
+
+The frontend is powered by Vue 3 and Vite, supported by daisyUI and Tailwind CSS for efficient frontend
+development. Together, these tools provide users with a sleek and modern interface for seamless interaction
+with the backend.
+
+## Summary
+
+In Movie Detectives, quiz answers are interpreted by the Language Model (LLM) once again, allowing for dynamic
+scoring and personalized responses. This showcases the potential of integrating LLM with RAG in game design and
+development, paving the way for truly individualized gaming experiences. Furthermore, it demonstrates the
+potential for creating engaging quiz trivia or educational games by involving LLM.
+
+Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
 
 - [Project overview](#project-overview)
 - [Project setup](#project-setup)
