@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class GeminiClient:
 
-    def __init__(self, project_id: str, location: str, credentials: Credentials, model: str = 'gemini-1.0-pro'):
+    def __init__(self, project_id: str, location: str, credentials: Credentials, model: str):
         vertexai.init(project=project_id, location=location, credentials=credentials)
 
         logger.info('loading model: %s', model)

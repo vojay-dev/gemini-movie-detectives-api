@@ -284,3 +284,31 @@ curl -s localhost:8000/limit | jq .
 ```
 
 Once a quiz is started and `current_date` is greater than `last_reset_date`, the `quiz_count` is reset to 0.
+
+# Personalities
+
+Due to the modularity of the prompt generation, it is possible to easily switch personalities of the quiz master. The
+personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personalities/` directory.
+They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
+
+## Example Usage: Santa Claus Personality
+
+The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
+
+```sh
+curl -s -X POST localhost:8000/quiz \
+  -H 'Content-Type: application/json' \
+  -d '{"vote_avg_min": 5.0, "vote_count_min": 1000.0, "popularity": 3, "personality": "christmas"}' | jq .
+```
+
+```json
+{
+  "quiz_id": "e1d298c3-fcb0-4ebe-8836-a22a51f87dc6",
+  "question": {
+    "question": "Ho ho ho, this movie takes place in a world of dreams, just like the dreams children have on Christmas Eve after seeing Santa Claus! It's about a team who enters people's dreams to steal their secrets. Can you guess the movie? Merry Christmas!",
+    "hint1": "The main character is like a skilled elf, sneaking into people's minds instead of houses. ",
+    "hint2": "I_c_p_i_n "
+  },
+  "movie": {...}
+}
+```

@@ -15,7 +15,7 @@ from vertexai.generative_models import ChatSession
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient
-from .prompt import PromptGenerator
+from .prompt import PromptGenerator, Personality
 from .tmdb import TmdbClient
 
 logger = logging.getLogger(__name__)
@@ -47,9 +47,13 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 settings: Settings = _get_settings()
 
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
-
 credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
-gemini_client: GeminiClient = GeminiClient(settings.gcp_project_id, settings.gcp_location, credentials)
+gemini_client: GeminiClient = GeminiClient(
+    settings.gcp_project_id,
+    settings.gcp_location,
+    credentials,
+    settings.gcp_gemini_model
+)
 prompt_generator: PromptGenerator = PromptGenerator()
 
 app: FastAPI = FastAPI()
@@ -88,6 +92,13 @@ def _get_page_max(popularity: int) -> int:
         2: 100,
         1: 300
     }.get(popularity, 3)
+
+
+def _get_personality_by_name(name: str) -> Personality:
+    try:
+        return Personality[name.upper()]
+    except KeyError:
+        return Personality.DEFAULT
 
 
 call_count = 0
@@ -180,6 +191,7 @@ def start_quiz(quiz_config: QuizConfig):
 
     prompt = prompt_generator.generate_question_prompt(
         movie_title=movie['title'],
+        personality=_get_personality_by_name(quiz_config.personality),
         tagline=movie['tagline'],
         overview=movie['overview'],
         genres=', '.join(genres),
