@@ -90,6 +90,30 @@ def _get_page_max(popularity: int) -> int:
     }.get(popularity, 3)
 
 
+call_count = 0
+last_reset_time = datetime.now()
+
+
+def rate_limit(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        global call_count
+        global last_reset_time
+
+        # reset call count if the day has changed
+        if datetime.now().date() > last_reset_time.date():
+            call_count = 0
+            last_reset_time = datetime.now()
+
+        if call_count >= settings.quiz_rate_limit:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Daily limit reached')
+
+        call_count += 1
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def retry(max_retries: int):
     def decorator(func):
         @wraps(func)
@@ -130,7 +154,19 @@ def get_sessions():
     } for session in session_cache.values()]
 
 
+@app.get('/limit')
+def get_limit():
+    return {
+        'daily_limit': settings.quiz_rate_limit,
+        'quiz_count': call_count,
+        'last_reset_time': last_reset_time,
+        'last_reset_date': last_reset_time.date(),
+        'current_date': datetime.now().date()
+    }
+
+
 @app.post('/quiz')
+@rate_limit
 @retry(max_retries=settings.quiz_max_retries)
 def start_quiz(quiz_config: QuizConfig):
     movie = tmdb_client.get_random_movie(
