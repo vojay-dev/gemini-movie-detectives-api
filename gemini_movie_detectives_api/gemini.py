@@ -50,17 +50,14 @@ class GeminiClient:
 
     @staticmethod
     def parse_gemini_answer(gemini_reply: str):
-        points = None
-        answer = None
+        result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
+        if len(result) != 2:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
+            logger.warning(msg)
+            raise ValueError(msg)
 
-        for line in gemini_reply.splitlines():
-            if line.startswith('Points:'):
-                points = line[7:].lstrip().rstrip()
-            elif line.startswith('Answer:'):
-                answer = line[7:].lstrip().rstrip()
-
-        if not points or not answer:
-            raise ValueError(f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}')
+        points = result[0]
+        answer = result[1]
 
         return {
             'points': points,
