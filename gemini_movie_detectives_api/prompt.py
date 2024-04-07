@@ -4,6 +4,9 @@ from typing import Any
 from jinja2 import Environment, PackageLoader, select_autoescape
 from pydantic.v1 import validate_arguments
 
+PERSONALITY_PATH = 'personality'
+LANGUAGE_PATH = 'language'
+
 
 class Personality(StrEnum):
     DEFAULT = 'default.jinja'
@@ -50,10 +53,10 @@ class PromptGenerator:
         template = self.env.get_template('prompt_question.jinja')
 
         # noinspection PyTypeChecker
-        language = self.env.get_template(f'language/{language.value}').render()
+        language = self.env.get_template(f'{LANGUAGE_PATH}/{language.value}').render()
 
         # noinspection PyTypeChecker
-        personality = self.env.get_template(f'personality/{personality.value}').render()
+        personality = self.env.get_template(f'{PERSONALITY_PATH}/{personality.value}').render()
 
         return template.render(
             language=language,
