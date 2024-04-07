@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any
 
 from jinja2 import Environment, PackageLoader, select_autoescape
+from pydantic.v1 import validate_arguments
 
 
 class Personality(StrEnum):
@@ -38,6 +39,7 @@ class PromptGenerator:
             autoescape=select_autoescape()
         )
 
+    @validate_arguments
     def generate_question_prompt(
         self,
         movie_title: str,

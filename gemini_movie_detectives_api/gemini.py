@@ -3,11 +3,23 @@ import re
 
 import vertexai
 from google.oauth2.service_account import Credentials
+from pydantic import BaseModel
 from vertexai.generative_models import GenerativeModel, ChatSession
 
 from .config import GENERATION_CONFIG
 
 logger = logging.getLogger(__name__)
+
+
+class GeminiQuestion(BaseModel):
+    question: str
+    hint1: str
+    hint2: str
+
+
+class GeminiAnswer(BaseModel):
+    points: int
+    answer: str
 
 
 class GeminiClient:
@@ -31,7 +43,7 @@ class GeminiClient:
         return ''.join(text_response)
 
     @staticmethod
-    def parse_gemini_question(gemini_reply: str):
+    def parse_gemini_question(gemini_reply: str) -> GeminiQuestion:
         result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
         if len(result) != 3:
             msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
@@ -42,14 +54,10 @@ class GeminiClient:
         hint1 = result[1]
         hint2 = result[2]
 
-        return {
-            'question': question,
-            'hint1': hint1,
-            'hint2': hint2
-        }
+        return GeminiQuestion(question=question, hint1=hint1, hint2=hint2)
 
     @staticmethod
-    def parse_gemini_answer(gemini_reply: str):
+    def parse_gemini_answer(gemini_reply: str) -> GeminiAnswer:
         result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
         if len(result) != 2:
             msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
@@ -59,7 +67,4 @@ class GeminiClient:
         points = result[0]
         answer = result[1]
 
-        return {
-            'points': points,
-            'answer': answer
-        }
+        return GeminiAnswer(points=int(points), answer=answer)

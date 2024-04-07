@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from vertexai.generative_models import ChatSession
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
-from .gemini import GeminiClient
+from .gemini import GeminiClient, GeminiQuestion, GeminiAnswer
 from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name
 from .tmdb import TmdbClient
 
@@ -25,13 +25,27 @@ class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     quiz_id: str
     chat: ChatSession
-    question: dict
+    question: GeminiQuestion
     movie: dict
     started_at: datetime
 
 
 class UserAnswer(BaseModel):
     answer: str
+
+
+class StartQuizResponse(BaseModel):
+    quiz_id: str
+    question: GeminiQuestion
+    movie: dict
+
+
+class FinishQuizResponse(BaseModel):
+    quiz_id: str
+    question: GeminiQuestion
+    movie: dict
+    user_answer: str
+    result: GeminiAnswer
 
 
 @lru_cache
@@ -98,9 +112,9 @@ call_count = 0
 last_reset_time = datetime.now()
 
 
-def rate_limit(func):
+def rate_limit(func: callable) -> callable:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> callable:
         global call_count
         global last_reset_time
 
@@ -118,8 +132,8 @@ def rate_limit(func):
     return wrapper
 
 
-def retry(max_retries: int):
-    def decorator(func):
+def retry(max_retries: int) -> callable:
+    def decorator(func) -> callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             for _ in range(max_retries):
@@ -173,7 +187,6 @@ def get_limit():
 @rate_limit
 @retry(max_retries=settings.quiz_max_retries)
 def start_quiz(quiz_config: QuizConfig = QuizConfig()):
-    print(quiz_config)
     movie = tmdb_client.get_random_movie(
         page_min=_get_page_min(quiz_config.popularity),
         page_max=_get_page_max(quiz_config.popularity),
@@ -213,11 +226,7 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
         started_at=datetime.now()
     )
 
-    return {
-        'quiz_id': quiz_id,
-        'question': gemini_question,
-        'movie': movie
-    }
+    return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
 
 
 @app.post('/quiz/{quiz_id}/answer')
@@ -238,10 +247,10 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     gemini_reply = gemini_client.get_chat_response(chat, prompt)
     gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
 
-    return {
-        'quiz_id': quiz_id,
-        'question': session_data.question,
-        'movie': session_data.movie,
-        'user_answer': user_answer.answer,
-        'result': gemini_answer
-    }
+    return FinishQuizResponse(
+        quiz_id=quiz_id,
+        question=session_data.question,
+        movie=session_data.movie,
+        user_answer=user_answer.answer,
+        result=gemini_answer
+    )
