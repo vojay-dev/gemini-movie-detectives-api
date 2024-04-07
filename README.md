@@ -36,7 +36,7 @@ in the quiz configuration.
 
 Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
 
-- [Project overview](#project-overview)
+- [Tech stack and project overview](#tech-stack-and-project-overview)
 - [Project setup](#project-setup)
 - [Configuration](#configuration)
 - [Docker](#docker)
@@ -57,13 +57,16 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
 - [Languages](#languages)
   - [Example: German language](#example-usage-german-language)
 
-## Project overview
+## Tech stack and project overview
 
-- Python 3.12 + FastAPI
-- Poetry for dependency management
-- Docker for deployment
-- TMDB API for movie data
-- VertexAI and Gemini for generating movie quizzes
+- Python 3.12 + [FastAPI](https://fastapi.tiangolo.com/) API development
+- [httpx](https://www.python-httpx.org/) for TMDB integration
+- [Jinja](https://jinja.palletsprojects.com/) templating for modular prompt generation
+- [Pydantic](https://docs.pydantic.dev/latest/) for data modeling and validation
+- [Poetry](https://python-poetry.org/) for dependency management
+- [Docker](https://www.docker.com/) for deployment
+- [TMDB API](https://www.themoviedb.org/) for movie data
+- [VertexAI](https://cloud.google.com/vertex-ai) and [Gemini](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini) for generating quiz questions and evaluating answers
 
 ![system overview](doc/system-overview.png)
 *Movie Detectives - System Overview*
@@ -88,6 +91,12 @@ curl -s localhost:8000/movies | jq .
 ```
 
 ## Configuration
+
+**Prerequisite**
+
+- TMDB API key ([can be generated for free](https://developer.themoviedb.org/docs/getting-started))
+- GCP project with VertexAI API enabled
+- JSON credentials file for GCP Service Account with VertexAI permissions
 
 The API is configured via environment variables. If a `.env` file is present in the project root, it will be loaded
 automatically. The following variables must be set:
