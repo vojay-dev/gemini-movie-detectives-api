@@ -1,5 +1,5 @@
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from gemini_movie_detectives_api.prompt import Personality, Language
@@ -10,9 +10,9 @@ GENERATION_CONFIG = {
 
 
 class QuizConfig(BaseModel):
-    vote_avg_min: float
-    vote_count_min: float
-    popularity: int
+    vote_avg_min: float = Field(5.0, ge=0.0, le=9.0)
+    vote_count_min: float = Field(1000.0, ge=0.0)
+    popularity: int = Field(1, ge=1, le=3)
     personality: str = Personality.DEFAULT.name
     language: str = Language.DEFAULT.name
 

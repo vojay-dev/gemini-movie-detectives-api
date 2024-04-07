@@ -172,7 +172,8 @@ def get_limit():
 @app.post('/quiz')
 @rate_limit
 @retry(max_retries=settings.quiz_max_retries)
-def start_quiz(quiz_config: QuizConfig):
+def start_quiz(quiz_config: QuizConfig = QuizConfig()):
+    print(quiz_config)
     movie = tmdb_client.get_random_movie(
         page_min=_get_page_min(quiz_config.popularity),
         page_max=_get_page_max(quiz_config.popularity),

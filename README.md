@@ -43,17 +43,19 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
   - [Build](#build)
   - [Run](#run)
   - [Save image for deployment](#save-image-for-deployment)
-- [API Example Usage](#api-example-usage)
+- [API example usage](#api-example-usage)
   - [Get a list of movies](#get-a-list-of-movies)
   - [Get a customized list of movies](#get-a-customized-list-of-movies)
   - [Get a random movie with more details](#get-a-random-movie-with-more-details)
   - [Start a quiz](#start-a-quiz)
+    - [Start a quiz with default configuration](#start-a-quiz-with-default-configuration)
+    - [Data validation](#data-validation)
   - [Send answer and finish a quiz](#send-answer-and-finish-a-quiz)
-- [Rate Limit](#rate-limit)
+- [Rate limit](#rate-limit)
 - [Personalities](#personalities)
-  - [Example Usage: Santa Claus Personality](#example-usage-santa-claus-personality)
+  - [Example: Santa Claus personality](#example-usage-santa-claus-personality)
 - [Languages](#languages)
-  - [Example Usage: German Language](#example-usage-german-language)
+  - [Example: German language](#example-usage-german-language)
 
 ## Project overview
 
@@ -120,7 +122,7 @@ docker stop gemini-movie-detectives-api
 docker save gemini-movie-detectives-api:latest | gzip > gemini-movie-detectives-api_latest.tar.gz
 ```
 
-## API Example Usage
+## API example usage
 
 ### Get a list of movies
 
@@ -248,6 +250,42 @@ curl -s -X POST localhost:8000/quiz \
 }
 ```
 
+#### Start a quiz with default configuration
+
+```sh
+curl -s -X POST localhost:8000/quiz | jq .
+```
+
+#### Data validation
+
+The API also validates the input data using Pydantic. If the input data is invalid, the API will return an error message:
+
+```sh
+curl -s -X POST localhost:8000/quiz \
+  -H 'Content-Type: application/json' \
+  -d '{"vote_avg_min": 11.0}' | jq .
+```
+
+```json
+{
+  "detail": [
+    {
+      "type": "less_than_equal",
+      "loc": [
+        "body",
+        "vote_avg_min"
+      ],
+      "msg": "Input should be less than or equal to 9",
+      "input": 11.0,
+      "ctx": {
+        "le": 9.0
+      },
+      "url": "https://errors.pydantic.dev/2.6/v/less_than_equal"
+    }
+  ]
+}
+```
+
 ### Send answer and finish a quiz
 
 ```sh
@@ -269,7 +307,7 @@ curl -s -X POST localhost:8000/quiz/84c19425-c179-4198-9773-a8a1b71c9605/answer 
 }
 ```
 
-## Rate Limit
+## Rate limit
 
 In order to control costs and prevent abuse, the API offers a way to limit the number of quiz sessions per day.
 
@@ -298,7 +336,7 @@ Due to the modularity of the prompt generation, it is possible to easily switch 
 personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personality/` directory.
 They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
 
-## Example Usage: Santa Claus Personality
+## Example: Santa Claus personality
 
 ![santa claus](doc/santa-claus-personality.png)
 
@@ -328,7 +366,7 @@ Due to the modularity of the prompt generation, it is also possible to easily sw
 Languages are defined in Jinja templates in the `gemini_movie_detectives_api/templates/language/` directory.
 They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
 
-## Example Usage: German Language
+## Example: German language
 
 The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
 
