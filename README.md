@@ -67,6 +67,7 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
 - [Docker](https://www.docker.com/) for deployment
 - [TMDB API](https://www.themoviedb.org/) for movie data
 - [VertexAI](https://cloud.google.com/vertex-ai) and [Gemini](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini) for generating quiz questions and evaluating answers
+- [Ruff](https://docs.astral.sh/ruff/) as linter and code formatter together with [pre-commit](https://pre-commit.com/) hooks
 
 ![system overview](doc/system-overview.png)
 *Movie Detectives - System Overview*
