@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "gemini-movie-detectives-api"
 version = "0.1.0"
-description = ""
-authors = ["Volker Janz <volker.janz@innogames.com>"]
+description = "Use Gemini Pro LLM via VertexAI to create an engaging quiz game incorporating TMDB API data"
+authors = ["Volker Janz <volker@janz.sh>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
