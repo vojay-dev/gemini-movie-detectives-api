@@ -15,7 +15,7 @@ from vertexai.generative_models import ChatSession
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient
-from .prompt import PromptGenerator, Personality, get_personality_by_name, get_language_by_name
+from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name
 from .tmdb import TmdbClient
 
 logger = logging.getLogger(__name__)
