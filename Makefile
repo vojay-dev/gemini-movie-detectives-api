@@ -1,6 +1,9 @@
 all:
 	@echo "see README.md"
 
+.venv:
+	poetry install
+
 .PHONY: run
 run:
 	uvicorn gemini_movie_detectives_api.main:app --reload
