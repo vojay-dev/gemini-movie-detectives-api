@@ -379,7 +379,7 @@ They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, whic
 
 ## Example: German language
 
-The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
+This example shows how to change the language for a quiz:
 
 ```sh
 curl -s -X POST localhost:8000/quiz \
