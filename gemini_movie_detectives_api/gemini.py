@@ -24,15 +24,28 @@ class GeminiAnswer(BaseModel):
 
 class GeminiClient:
 
+    FALLBACK_MODEL = 'gemini-1.0-pro'
+
     def __init__(self, project_id: str, location: str, credentials: Credentials, model: str):
         vertexai.init(project=project_id, location=location, credentials=credentials)
 
         logger.info('loading model: %s', model)
         logger.info('generation config: %s', GENERATION_CONFIG)
         self.model = GenerativeModel(model)
+        self.fallback_model = GenerativeModel(self.FALLBACK_MODEL)
 
     def start_chat(self) -> ChatSession:
-        return self.model.start_chat()
+        # noinspection PyBroadException
+        try:
+            return self.model.start_chat()
+        except Exception as e:
+            logger.warning(
+                'error while using model %s, using fallback model %s, error: %s',
+                self.model,
+                self.FALLBACK_MODEL,
+                e
+            )
+            return self.fallback_model.start_chat()
 
     @staticmethod
     def get_chat_response(chat: ChatSession, prompt: str) -> str:
