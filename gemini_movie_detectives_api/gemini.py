@@ -37,7 +37,7 @@ class GeminiClient:
     def start_chat(self) -> ChatSession:
         # noinspection PyBroadException
         try:
-            return self.model.start_chat()
+            return self.model.start_chat(response_validation=False)
         except Exception as e:
             logger.warning(
                 'error while using model %s, using fallback model %s, error: %s',
@@ -45,7 +45,7 @@ class GeminiClient:
                 self.FALLBACK_MODEL,
                 e
             )
-            return self.fallback_model.start_chat()
+            return self.fallback_model.start_chat(response_validation=False)
 
     @staticmethod
     def get_chat_response(chat: ChatSession, prompt: str) -> str:
