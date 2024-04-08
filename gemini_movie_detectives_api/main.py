@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
+from google.oauth2.service_account import Credentials
 from pydantic import BaseModel, ConfigDict
 from vertexai.generative_models import ChatSession
 
@@ -18,7 +19,7 @@ from .gemini import GeminiClient, GeminiQuestion, GeminiAnswer
 from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name
 from .tmdb import TmdbClient
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SessionData(BaseModel):
@@ -61,7 +62,7 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 settings: Settings = _get_settings()
 
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
-credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
+credentials: Credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 gemini_client: GeminiClient = GeminiClient(
     settings.gcp_project_id,
     settings.gcp_location,
@@ -89,7 +90,7 @@ app.add_middleware(
 )
 
 # cache for quiz session, ttl = max session duration in seconds
-session_cache = TTLCache(maxsize=100, ttl=600)
+session_cache: TTLCache = TTLCache(maxsize=100, ttl=600)
 
 
 def _get_page_min(popularity: int) -> int:
@@ -108,8 +109,8 @@ def _get_page_max(popularity: int) -> int:
     }.get(popularity, 3)
 
 
-call_count = 0
-last_reset_time = datetime.now()
+call_count: int = 0
+last_reset_time: datetime = datetime.now()
 
 
 def rate_limit(func: callable) -> callable:
