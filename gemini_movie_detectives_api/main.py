@@ -49,6 +49,21 @@ class FinishQuizResponse(BaseModel):
     result: GeminiAnswer
 
 
+class SessionResponse(BaseModel):
+    quiz_id: str
+    question: GeminiQuestion
+    movie: dict
+    started_at: datetime
+
+
+class LimitResponse(BaseModel):
+    daily_limit: int
+    quiz_count: int
+    last_reset_time: datetime
+    last_reset_date: datetime
+    current_date: datetime
+
+
 @lru_cache
 def _get_settings() -> Settings:
     return Settings()
@@ -165,23 +180,23 @@ def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float =
 
 @app.get('/sessions')
 def get_sessions():
-    return [{
-        'quiz_id': session.quiz_id,
-        'question': session.question,
-        'movie': session.movie,
-        'started_at': session.started_at
-    } for session in session_cache.values()]
+    return [SessionResponse(
+        quiz_id=session.quiz_id,
+        question=session.question,
+        movie=session.movie,
+        started_at=session.started_at
+    ) for session in session_cache.values()]
 
 
 @app.get('/limit')
 def get_limit():
-    return {
-        'daily_limit': settings.quiz_rate_limit,
-        'quiz_count': call_count,
-        'last_reset_time': last_reset_time,
-        'last_reset_date': last_reset_time.date(),
-        'current_date': datetime.now().date()
-    }
+    return LimitResponse(
+        daily_limit=settings.quiz_rate_limit,
+        quiz_count=call_count,
+        last_reset_time=last_reset_time,
+        last_reset_date=last_reset_time.date(),
+        current_date=datetime.now().date()
+    )
 
 
 @app.post('/quiz')
