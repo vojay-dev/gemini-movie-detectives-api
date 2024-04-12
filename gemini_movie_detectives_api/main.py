@@ -9,6 +9,7 @@ from cachetools import TTLCache
 from fastapi import FastAPI
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from google.api_core.exceptions import GoogleAPIError
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from pydantic import BaseModel, ConfigDict
@@ -210,39 +211,48 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
         vote_count_min=quiz_config.vote_count_min
     )
 
-    genres = [genre['name'] for genre in movie['genres']]
+    if not movie:
+        logger.info('could not find movie with quiz config: %s', quiz_config.dict())
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No movie found with given criteria')
 
-    prompt = prompt_generator.generate_question_prompt(
-        movie_title=movie['title'],
-        language=get_language_by_name(quiz_config.language),
-        personality=get_personality_by_name(quiz_config.personality),
-        tagline=movie['tagline'],
-        overview=movie['overview'],
-        genres=', '.join(genres),
-        budget=movie['budget'],
-        revenue=movie['revenue'],
-        average_rating=movie['vote_average'],
-        rating_count=movie['vote_count'],
-        release_date=movie['release_date'],
-        runtime=movie['runtime']
-    )
+    try:
+        genres = [genre['name'] for genre in movie['genres']]
 
-    chat = gemini_client.start_chat()
+        prompt = prompt_generator.generate_question_prompt(
+            movie_title=movie['title'],
+            language=get_language_by_name(quiz_config.language),
+            personality=get_personality_by_name(quiz_config.personality),
+            tagline=movie['tagline'],
+            overview=movie['overview'],
+            genres=', '.join(genres),
+            budget=movie['budget'],
+            revenue=movie['revenue'],
+            average_rating=movie['vote_average'],
+            rating_count=movie['vote_count'],
+            release_date=movie['release_date'],
+            runtime=movie['runtime']
+        )
 
-    logger.debug('starting quiz with generated prompt: %s', prompt)
-    gemini_reply = gemini_client.get_chat_response(chat, prompt)
-    gemini_question = gemini_client.parse_gemini_question(gemini_reply)
+        chat = gemini_client.start_chat()
 
-    quiz_id = str(uuid.uuid4())
-    session_cache[quiz_id] = SessionData(
-        quiz_id=quiz_id,
-        chat=chat,
-        question=gemini_question,
-        movie=movie,
-        started_at=datetime.now()
-    )
+        logger.debug('starting quiz with generated prompt: %s', prompt)
+        gemini_reply = gemini_client.get_chat_response(chat, prompt)
+        gemini_question = gemini_client.parse_gemini_question(gemini_reply)
 
-    return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
+        quiz_id = str(uuid.uuid4())
+        session_cache[quiz_id] = SessionData(
+            quiz_id=quiz_id,
+            chat=chat,
+            question=gemini_question,
+            movie=movie,
+            started_at=datetime.now()
+        )
+
+        return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
+    except GoogleAPIError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
 
 @app.post('/quiz/{quiz_id}/answer')
@@ -254,19 +264,24 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
         logger.info('session not found: %s', quiz_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
 
-    prompt = prompt_generator.generate_answer_prompt(answer=user_answer.answer)
+    try:
+        prompt = prompt_generator.generate_answer_prompt(answer=user_answer.answer)
 
-    chat = session_data.chat
-    del session_cache[quiz_id]
+        chat = session_data.chat
+        del session_cache[quiz_id]
 
-    logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
-    gemini_reply = gemini_client.get_chat_response(chat, prompt)
-    gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
+        logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
+        gemini_reply = gemini_client.get_chat_response(chat, prompt)
+        gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
 
-    return FinishQuizResponse(
-        quiz_id=quiz_id,
-        question=session_data.question,
-        movie=session_data.movie,
-        user_answer=user_answer.answer,
-        result=gemini_answer
-    )
+        return FinishQuizResponse(
+            quiz_id=quiz_id,
+            question=session_data.question,
+            movie=session_data.movie,
+            user_answer=user_answer.answer,
+            result=gemini_answer
+        )
+    except GoogleAPIError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
