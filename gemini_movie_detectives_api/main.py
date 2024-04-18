@@ -138,7 +138,7 @@ def _get_page_min(popularity: int) -> int:
     return {
         3: 1,
         2: 10,
-        1: 100
+        1: 50
     }.get(popularity, 1)
 
 
