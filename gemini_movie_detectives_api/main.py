@@ -1,5 +1,8 @@
 import logging
+import os
+import pickle
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
 from functools import wraps
@@ -65,6 +68,11 @@ class LimitResponse(BaseModel):
     current_date: datetime
 
 
+class Stats(BaseModel):
+    quiz_count_total: int = 0
+    points_total: int = 0
+
+
 @lru_cache
 def _get_settings() -> Settings:
     return Settings()
@@ -87,7 +95,24 @@ gemini_client: GeminiClient = GeminiClient(
 )
 prompt_generator: PromptGenerator = PromptGenerator()
 
-app: FastAPI = FastAPI()
+
+stats = Stats()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # load stats on startup
+    global stats
+    if os.path.exists(settings.stats_path):
+        with open(settings.stats_path, 'rb') as f:
+            stats = pickle.load(f)
+    yield
+    # persist stats on shutdown
+    with open(settings.stats_path, 'wb') as f:
+        pickle.dump(stats, f)
+
+
+app: FastAPI = FastAPI(lifespan=lifespan)
 
 # for local development
 origins = [
@@ -200,6 +225,11 @@ def get_limit():
     )
 
 
+@app.get('/stats')
+def get_stats():
+    return stats
+
+
 @app.post('/quiz')
 @rate_limit
 @retry(max_retries=settings.quiz_max_retries)
@@ -248,6 +278,7 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
             started_at=datetime.now()
         )
 
+        stats.quiz_count_total += 1
         return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
     except GoogleAPIError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
@@ -274,6 +305,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
         gemini_reply = gemini_client.get_chat_response(chat, prompt)
         gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
 
+        stats.points_total += gemini_answer.points
         return FinishQuizResponse(
             quiz_id=quiz_id,
             question=session_data.question,
