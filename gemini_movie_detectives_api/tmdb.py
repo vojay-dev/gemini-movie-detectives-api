@@ -44,6 +44,9 @@ class TmdbClient:
 
     def get_random_movie(self, page_min: int, page_max: int, vote_avg_min: float, vote_count_min: float):
         movies = self.get_movies(random.randint(page_min, page_max), vote_avg_min, vote_count_min)
+        if not movies:
+            return None
+
         return self.get_movie_details(random.choice(movies)['id'])
 
     @lru_cache(maxsize=1024)
