@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
 from functools import wraps
+from pathlib import Path
 from time import sleep
 
 from cachetools import TTLCache
@@ -73,6 +74,11 @@ class Stats(BaseModel):
     points_total: int = 0
 
 
+class StatsResponse(BaseModel):
+    stats: Stats
+    limit: LimitResponse
+
+
 @lru_cache
 def _get_settings() -> Settings:
     return Settings()
@@ -101,14 +107,18 @@ stats = Stats()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # load stats on startup
     global stats
-    if os.path.exists(settings.stats_path):
+    path = Path(settings.stats_path)
+
+    # load stats on startup
+    if path.exists():
         with open(settings.stats_path, 'rb') as f:
             stats = pickle.load(f)
     yield
+
     # persist stats on shutdown
-    with open(settings.stats_path, 'wb') as f:
+    os.makedirs(path.parent.absolute(), exist_ok=True)
+    with path.open('wb') as f:
         pickle.dump(stats, f)
 
 
@@ -227,7 +237,10 @@ def get_limit():
 
 @app.get('/stats')
 def get_stats():
-    return stats
+    return StatsResponse(
+        stats=stats,
+        limit=get_limit()
+    )
 
 
 @app.post('/quiz')
@@ -282,7 +295,7 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
         return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
     except GoogleAPIError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
-    except Exception as e:
+    except BaseException as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
 
@@ -315,5 +328,5 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
         )
     except GoogleAPIError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
-    except Exception as e:
+    except BaseException as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
