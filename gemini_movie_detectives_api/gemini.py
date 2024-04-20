@@ -77,7 +77,7 @@ class GeminiClient:
             logger.warning(msg)
             raise ValueError(msg)
 
-        points = result[0]
+        points = re.sub('[^0-9]', '', result[0])
         answer = result[1]
 
         return GeminiAnswer(points=int(points), answer=answer)
