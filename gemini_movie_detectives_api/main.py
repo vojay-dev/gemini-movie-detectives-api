@@ -164,6 +164,16 @@ call_count: int = 0
 last_reset_time: datetime = datetime.now()
 
 
+def _get_limit_response() -> LimitResponse:
+    return LimitResponse(
+        daily_limit=settings.quiz_rate_limit,
+        quiz_count=call_count,
+        last_reset_time=last_reset_time,
+        last_reset_date=last_reset_time.date(),
+        current_date=datetime.now().date()
+    )
+
+
 def rate_limit(func: callable) -> callable:
     @wraps(func)
     def wrapper(*args, **kwargs) -> callable:
@@ -226,20 +236,14 @@ async def get_sessions():
 
 @app.get('/limit')
 async def get_limit():
-    return LimitResponse(
-        daily_limit=settings.quiz_rate_limit,
-        quiz_count=call_count,
-        last_reset_time=last_reset_time,
-        last_reset_date=last_reset_time.date(),
-        current_date=datetime.now().date()
-    )
+    return _get_limit_response()
 
 
 @app.get('/stats')
 async def get_stats():
     return StatsResponse(
         stats=stats,
-        limit=get_limit()
+        limit=_get_limit_response()
     )
 
 
