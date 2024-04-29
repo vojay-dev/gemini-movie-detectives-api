@@ -205,17 +205,17 @@ def retry(max_retries: int) -> callable:
 
 
 @app.get('/movies')
-def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+async def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
     return tmdb_client.get_movies(page, vote_avg_min, vote_count_min)
 
 
 @app.get('/movies/random')
-def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+async def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
     return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
 
 
 @app.get('/sessions')
-def get_sessions():
+async def get_sessions():
     return [SessionResponse(
         quiz_id=session.quiz_id,
         question=session.question,
@@ -225,7 +225,7 @@ def get_sessions():
 
 
 @app.get('/limit')
-def get_limit():
+async def get_limit():
     return LimitResponse(
         daily_limit=settings.quiz_rate_limit,
         quiz_count=call_count,
@@ -236,7 +236,7 @@ def get_limit():
 
 
 @app.get('/stats')
-def get_stats():
+async def get_stats():
     return StatsResponse(
         stats=stats,
         limit=get_limit()
@@ -246,7 +246,7 @@ def get_stats():
 @app.post('/quiz')
 @rate_limit
 @retry(max_retries=settings.quiz_max_retries)
-def start_quiz(quiz_config: QuizConfig = QuizConfig()):
+async def start_quiz(quiz_config: QuizConfig = QuizConfig()):
     movie = tmdb_client.get_random_movie(
         page_min=_get_page_min(quiz_config.popularity),
         page_max=_get_page_max(quiz_config.popularity),
@@ -301,7 +301,7 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
 
 @app.post('/quiz/{quiz_id}/answer')
 @retry(max_retries=settings.quiz_max_retries)
-def finish_quiz(quiz_id: str, user_answer: UserAnswer):
+async def finish_quiz(quiz_id: str, user_answer: UserAnswer):
     session_data = session_cache.get(quiz_id)
 
     if not session_data:
