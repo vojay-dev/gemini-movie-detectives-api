@@ -6,15 +6,15 @@ all:
 
 .PHONY: run
 run:
-	uvicorn gemini_movie_detectives_api.main:app --reload
+	poetry run uvicorn gemini_movie_detectives_api.main:app --reload
 
 .PHONY: test
 test:
-	python -m unittest -v
+	poetry run python -m unittest -v
 
 .PHONY: ruff
 ruff:
-	ruff check --fix
+	poetry run ruff check --fix
 
 .PHONY: clean
 clean:

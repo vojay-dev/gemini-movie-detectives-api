@@ -24,7 +24,7 @@ class GeminiAnswer(BaseModel):
 
 class GeminiClient:
 
-    FALLBACK_MODEL = 'gemini-1.0-pro'
+    FALLBACK_MODEL = 'gemini-1.5-pro-001'
 
     def __init__(self, project_id: str, location: str, credentials: Credentials, model: str):
         vertexai.init(project=project_id, location=location, credentials=credentials)
