@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import pickle
@@ -17,11 +18,13 @@ from google.api_core.exceptions import GoogleAPIError
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from pydantic import BaseModel, ConfigDict
+from starlette.responses import FileResponse
 from vertexai.generative_models import ChatSession
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient, GeminiQuestion, GeminiAnswer
 from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name
+from .speech import SpeechClient, TEMP_AUDIO_DIR
 from .tmdb import TmdbClient
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ class StartQuizResponse(BaseModel):
     quiz_id: str
     question: GeminiQuestion
     movie: dict
+    speech: str
 
 
 class FinishQuizResponse(BaseModel):
@@ -52,6 +56,7 @@ class FinishQuizResponse(BaseModel):
     movie: dict
     user_answer: str
     result: GeminiAnswer
+    speech: str
 
 
 class SessionResponse(BaseModel):
@@ -99,6 +104,7 @@ gemini_client: GeminiClient = GeminiClient(
     credentials,
     settings.gcp_gemini_model
 )
+speech_client: SpeechClient = SpeechClient(credentials)
 prompt_generator: PromptGenerator = PromptGenerator()
 
 
@@ -296,7 +302,12 @@ def start_quiz(quiz_config: QuizConfig = QuizConfig()):
         )
 
         stats.quiz_count_total += 1
-        return StartQuizResponse(quiz_id=quiz_id, question=gemini_question, movie=movie)
+        return StartQuizResponse(
+            quiz_id=quiz_id,
+            question=gemini_question,
+            movie=movie,
+            speech=speech_client.synthesize_to_file(gemini_question.question)
+        )
     except GoogleAPIError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
     except BaseException as e:
@@ -328,9 +339,20 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
             question=session_data.question,
             movie=session_data.movie,
             user_answer=user_answer.answer,
-            result=gemini_answer
+            result=gemini_answer,
+            speech=speech_client.synthesize_to_file(gemini_answer.answer)
         )
     except GoogleAPIError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
     except BaseException as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
+
+
+@app.get('/audio/{file_id}.mp3', response_class=FileResponse)
+async def get_audio(file_id: str):
+    audio_file_path = Path(f'{TEMP_AUDIO_DIR}/{file_id}.mp3')
+
+    if not audio_file_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    return FileResponse(audio_file_path)
