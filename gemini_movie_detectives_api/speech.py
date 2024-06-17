@@ -1,6 +1,7 @@
 import uuid
 from pathlib import Path
 
+import emoji
 from google.cloud import texttospeech
 from google.oauth2.service_account import Credentials
 
@@ -29,6 +30,9 @@ class SpeechClient:
         )
 
     def synthesize(self, text: str) -> bytes:
+        # remove emojis
+        text = emoji.replace_emoji(text, replace='')
+
         synthesis_input = texttospeech.SynthesisInput(text=text)
         response = self.client.synthesize_speech(
             input=synthesis_input,
