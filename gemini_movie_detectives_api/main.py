@@ -24,7 +24,7 @@ from vertexai.generative_models import ChatSession
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient, GeminiQuestion, GeminiAnswer
 from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name
-from .speech import SpeechClient, TEMP_AUDIO_DIR
+from .speech import SpeechClient
 from .tmdb import TmdbClient
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -104,8 +104,11 @@ gemini_client: GeminiClient = GeminiClient(
     credentials,
     settings.gcp_gemini_model
 )
-speech_client: SpeechClient = SpeechClient(credentials)
 prompt_generator: PromptGenerator = PromptGenerator()
+
+tmp_audio_dir = Path("/tmp/movie-detectives/audio")
+tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 
 
 stats = Stats()
@@ -350,7 +353,7 @@ def finish_quiz(quiz_id: str, user_answer: UserAnswer):
 
 @app.get('/audio/{file_id}.mp3', response_class=FileResponse)
 async def get_audio(file_id: str):
-    audio_file_path = Path(f'{TEMP_AUDIO_DIR}/{file_id}.mp3')
+    audio_file_path = Path(f'{speech_client.tmp_audio_dir}/{file_id}.mp3')
 
     if not audio_file_path.exists():
         raise HTTPException(status_code=404, detail="Audio file not found")

@@ -5,20 +5,19 @@ import emoji
 from google.cloud import texttospeech
 from google.oauth2.service_account import Credentials
 
-TEMP_AUDIO_DIR = Path("/tmp/movie-detectives/audio")
-TEMP_AUDIO_DIR.mkdir(exist_ok=True)
-
 
 class SpeechClient:
 
     def __init__(
         self,
+        tmp_audio_dir: Path,
         credentials: Credentials,
         language_code: str = 'en-US',
         voice_name: str = 'en-US-Studio-M',
         audio_encoding: texttospeech.AudioEncoding = texttospeech.AudioEncoding.LINEAR16,
         speaking_rate: float = 0.85
     ) -> None:
+        self.tmp_audio_dir = tmp_audio_dir
         self.client = texttospeech.TextToSpeechClient(credentials=credentials)
         self.voice = texttospeech.VoiceSelectionParams(
             language_code=language_code,
@@ -45,7 +44,7 @@ class SpeechClient:
     def synthesize_to_file(self, text: str) -> str:
         audio_bytes = self.synthesize(text)
         file_id = str(uuid.uuid4())
-        audio_file_path = f'{TEMP_AUDIO_DIR}/{file_id}.mp3'
+        audio_file_path = f'{self.tmp_audio_dir}/{file_id}.mp3'
 
         with open(audio_file_path, 'wb') as file:
             file.write(audio_bytes)
