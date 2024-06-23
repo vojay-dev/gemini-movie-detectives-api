@@ -6,11 +6,7 @@ from gemini_movie_detectives_api.prompt import Personality, Language
 
 
 class QuizConfig(BaseModel):
-    vote_avg_min: float = Field(5.0, ge=0.0, le=9.0)
-    vote_count_min: float = Field(1000.0, ge=0.0)
-    popularity: int = Field(1, ge=1, le=3)
     personality: str = Personality.DEFAULT.name
-    language: str = Language.DEFAULT.name
 
 
 class TmdbImagesConfig(BaseModel):
