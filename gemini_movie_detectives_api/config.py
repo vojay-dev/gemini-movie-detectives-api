@@ -4,10 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from gemini_movie_detectives_api.prompt import Personality, Language
 
-GENERATION_CONFIG = {
-    'temperature': 0.5
-}
-
 
 class QuizConfig(BaseModel):
     vote_avg_min: float = Field(5.0, ge=0.0, le=9.0)

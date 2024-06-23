@@ -10,6 +10,10 @@ It is your decision how many points the participants get. They get 0, 1, 2 or 3 
 
 Be nice, if it is close, it is fine. Answer in a funny and nice way.
 
-Your reply must only consist of two lines! You must only reply strictly using the following template for the two lines:
-Points: <0-3>
-Answer: <your answer to the participants>
+Reply using this JSON schema:
+
+{"points": int, "answer": str}
+
+- points: The amount of points you want to give the participants, must be between 0 and 3
+- answer: Your answer to the participants
+- hint2: The second hint to get the title more easily

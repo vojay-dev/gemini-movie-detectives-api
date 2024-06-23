@@ -4,11 +4,33 @@ import re
 import vertexai
 from google.oauth2.service_account import Credentials
 from pydantic import BaseModel
+from pydantic_core import from_json
+from vertexai import generative_models
 from vertexai.generative_models import GenerativeModel, ChatSession
 
-from .config import GENERATION_CONFIG
-
 logger = logging.getLogger(__name__)
+
+
+GENERATION_CONFIG = {
+    'temperature': 0.5,
+    # initialize Gemini with JSON mode enabled, see: https://ai.google.dev/gemini-api/docs/api-overview#json
+    'response_mime_type': 'application/json'
+}
+
+SAFETY_CONFIG = [
+    generative_models.SafetySetting(
+        category=generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+    generative_models.SafetySetting(
+        category=generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+    generative_models.SafetySetting(
+        category=generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+]
 
 
 class GeminiQuestion(BaseModel):
@@ -24,28 +46,16 @@ class GeminiAnswer(BaseModel):
 
 class GeminiClient:
 
-    FALLBACK_MODEL = 'gemini-1.5-pro-001'
-
     def __init__(self, project_id: str, location: str, credentials: Credentials, model: str):
         vertexai.init(project=project_id, location=location, credentials=credentials)
 
         logger.info('loading model: %s', model)
         logger.info('generation config: %s', GENERATION_CONFIG)
-        self.model = GenerativeModel(model)
-        self.fallback_model = GenerativeModel(self.FALLBACK_MODEL)
+
+        self.model = GenerativeModel(model, safety_settings=SAFETY_CONFIG)
 
     def start_chat(self) -> ChatSession:
-        # noinspection PyBroadException
-        try:
-            return self.model.start_chat(response_validation=False)
-        except Exception as e:
-            logger.warning(
-                'error while using model %s, using fallback model %s, error: %s',
-                self.model,
-                self.FALLBACK_MODEL,
-                e
-            )
-            return self.fallback_model.start_chat(response_validation=False)
+        return self.model.start_chat(response_validation=False)
 
     @staticmethod
     def get_chat_response(chat: ChatSession, prompt: str) -> str:
@@ -57,27 +67,18 @@ class GeminiClient:
 
     @staticmethod
     def parse_gemini_question(gemini_reply: str) -> GeminiQuestion:
-        result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
-        if len(result) != 3:
-            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
+        try:
+            return GeminiQuestion.model_validate(from_json(gemini_reply))
+        except Exception as e:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
             logger.warning(msg)
             raise ValueError(msg)
-
-        question = result[0]
-        hint1 = result[1]
-        hint2 = result[2]
-
-        return GeminiQuestion(question=question, hint1=hint1, hint2=hint2)
 
     @staticmethod
     def parse_gemini_answer(gemini_reply: str) -> GeminiAnswer:
-        result = re.findall(r'[^:]+: ([^\n]+)', gemini_reply, re.MULTILINE)
-        if len(result) != 2:
-            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}'
+        try:
+            return GeminiAnswer.model_validate(from_json(gemini_reply))
+        except Exception as e:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
             logger.warning(msg)
             raise ValueError(msg)
-
-        points = re.sub('[^0-9]', '', result[0])
-        answer = result[1]
-
-        return GeminiAnswer(points=int(points), answer=answer)

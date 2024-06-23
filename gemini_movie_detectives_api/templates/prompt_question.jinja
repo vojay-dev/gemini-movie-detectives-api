@@ -20,7 +20,10 @@ Here are some details to have more input for coming up with a proper question, y
 
 {% include 'metadata.jinja' %}
 
-Your reply must only consist of three lines! You must only reply strictly using the following template for the three lines:
-Question: <Your question>
-Hint 1: <The first hint to help the participants>
-Hint 2: <The second hint to get the title more easily>
+Reply using this JSON schema:
+
+{"question": str, "hint1": str, "hint2": str}
+
+- question: your generated question
+- hint1: The first hint to help the participants
+- hint2: The second hint to get the title more easily
