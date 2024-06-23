@@ -88,7 +88,7 @@ poetry install
 **Run**:
 ```sh
 source .venv/bin/activate
-uvicorn gemini_movie_detectives_api.main:app --reload
+fastapi dev gemini_movie_detectives_api/main.py
 curl -s localhost:8000/movies | jq .
 ```
 

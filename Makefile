@@ -6,7 +6,7 @@ all:
 
 .PHONY: run
 run:
-	poetry run uvicorn gemini_movie_detectives_api.main:app --reload
+	poetry run fastapi dev gemini_movie_detectives_api/main.py
 
 .PHONY: test
 test:

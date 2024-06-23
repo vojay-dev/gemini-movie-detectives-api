@@ -15,4 +15,4 @@ RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
 
 COPY . /workdir
 EXPOSE 9091
-CMD ["uvicorn", "gemini_movie_detectives_api.main:app", "--host", "0.0.0.0", "--port", "9091"]
+CMD ["fastapi", "run", "gemini_movie_detectives_api/main.py", "--port", "9091"]
