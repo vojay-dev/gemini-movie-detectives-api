@@ -4,12 +4,10 @@ import pickle
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
-from enum import Enum
 from functools import lru_cache
 from functools import wraps
 from pathlib import Path
 from time import sleep
-from typing import Union
 
 from cachetools import TTLCache
 from fastapi import FastAPI
@@ -18,82 +16,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.api_core.exceptions import GoogleAPIError
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
-from pydantic import BaseModel, ConfigDict
-from starlette.responses import FileResponse, JSONResponse
-from vertexai.generative_models import ChatSession
+from starlette.responses import FileResponse
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
-from .gemini import GeminiClient, GeminiQuestion, GeminiAnswer
-from .prompt import PromptGenerator, get_personality_by_name, get_language_by_name, Language
+from .gemini import GeminiClient
+from .model import Stats, LimitResponse, SessionResponse, StatsResponse, UserAnswer, SessionData, FinishQuizResponse, \
+    QuizType, StartQuizResponse
+from .prompt import PromptGenerator
+from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
 from .tmdb import TmdbClient
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-class QuizType(str, Enum):
-    TITLE_DETECTIVES = 'title-detectives'
-    SEQUEL_SALAD = 'sequel-salad'
-    BTTF_TRIVIA = 'bttf-trivia'
-    TRIVIA = 'trivia'
-
-
-class UserAnswer(BaseModel):
-    answer: str
-
-
-class TitleDetectivesData(BaseModel):
-    question: GeminiQuestion
-    movie: dict
-    speech: str
-
-
-class StartQuizResponse(BaseModel):
-    quiz_id: str
-    quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, dict]
-
-
-class SessionData(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    quiz_id: str
-    quiz_data: Union[TitleDetectivesData, dict]
-    chat: ChatSession
-    started_at: datetime
-
-
-class FinishQuizResponse(BaseModel):
-    quiz_id: str
-    question: GeminiQuestion
-    movie: dict
-    user_answer: str
-    result: GeminiAnswer
-    speech: str
-
-
-class SessionResponse(BaseModel):
-    quiz_id: str
-    question: GeminiQuestion
-    movie: dict
-    started_at: datetime
-
-
-class LimitResponse(BaseModel):
-    daily_limit: int
-    quiz_count: int
-    last_reset_time: datetime
-    last_reset_date: datetime
-    current_date: datetime
-
-
-class Stats(BaseModel):
-    quiz_count_total: int = 0
-    points_total: int = 0
-
-
-class StatsResponse(BaseModel):
-    stats: Stats
-    limit: LimitResponse
 
 
 @lru_cache
@@ -121,6 +55,8 @@ prompt_generator: PromptGenerator = PromptGenerator()
 tmp_audio_dir = Path("/tmp/movie-detectives/audio")
 tmp_audio_dir.mkdir(parents=True, exist_ok=True)
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
+
+title_detectives = TitleDetectives(tmdb_client, prompt_generator, gemini_client, speech_client)
 
 
 stats = Stats()
@@ -319,10 +255,10 @@ def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> S
     chat = gemini_client.start_chat()
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: quiz_data = start_title_detectives(quiz_config, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = start_sequel_salad()
-        case QuizType.BTTF_TRIVIA: quiz_data = start_bttf_trivia()
-        case QuizType.TRIVIA: quiz_data = start_trivia()
+        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)
+        case QuizType.SEQUEL_SALAD: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
+        case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
+        case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
@@ -339,61 +275,3 @@ def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> S
         quiz_type=quiz_type,
         quiz_data=quiz_data
     )
-
-
-def start_title_detectives(quiz_config: QuizConfig, chat: ChatSession):
-    movie = tmdb_client.get_random_movie(
-        page_min=1,
-        page_max=100,
-        vote_avg_min=4.0,
-        vote_count_min=800
-    )
-
-    if not movie:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No movie found with given criteria')
-
-    try:
-        prompt = prompt_generator.generate_question_prompt(
-            movie_title=movie['title'],
-            language=Language.DEFAULT,
-            personality=get_personality_by_name(quiz_config.personality),
-            tagline=movie['tagline'],
-            overview=movie['overview'],
-            genres=', '.join([genre['name'] for genre in movie['genres']]),
-            budget=movie['budget'],
-            revenue=movie['revenue'],
-            average_rating=movie['vote_average'],
-            rating_count=movie['vote_count'],
-            release_date=movie['release_date'],
-            runtime=movie['runtime']
-        )
-
-        logger.debug('starting quiz with generated prompt: %s', prompt)
-        gemini_reply = gemini_client.get_chat_response(chat, prompt)
-        gemini_question = gemini_client.parse_gemini_question(gemini_reply)
-
-        return TitleDetectivesData(
-            question=gemini_question,
-            movie=movie,
-            speech=speech_client.synthesize_to_file(gemini_question.question),
-            chat=chat
-        )
-    except GoogleAPIError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
-    except BaseException as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
-
-
-def start_sequel_salad():
-    # todo
-    return {}
-
-
-def start_bttf_trivia():
-    # todo
-    return {}
-
-
-def start_trivia():
-    # todo
-    return {}
