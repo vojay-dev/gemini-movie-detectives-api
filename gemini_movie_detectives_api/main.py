@@ -224,17 +224,17 @@ def retry(max_retries: int) -> callable:
 
 
 @app.get('/movies')
-def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+async def get_movies(page: int = 1, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
     return tmdb_client.get_movies(page, vote_avg_min, vote_count_min)
 
 
 @app.get('/movies/random')
-def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
+async def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: float = 5.0, vote_count_min: float = 1000.0):
     return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
 
 
 @app.get('/sessions')
-def get_sessions():
+async def get_sessions():
     return [SessionResponse(
         quiz_id=session.quiz_id,
         question=session.question,
@@ -244,12 +244,12 @@ def get_sessions():
 
 
 @app.get('/limit')
-def get_limit():
+async def get_limit():
     return _get_limit_response()
 
 
 @app.get('/stats')
-def get_stats():
+async def get_stats():
     return StatsResponse(
         stats=stats,
         limit=_get_limit_response()
