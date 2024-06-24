@@ -15,7 +15,7 @@ class QuizType(str, Enum):
     TRIVIA = 'trivia'
 
 
-class UserAnswer(BaseModel):
+class FinishTitleDetectivesData(BaseModel):
     answer: str
 
 
@@ -31,8 +31,12 @@ class StartQuizResponse(BaseModel):
     quiz_data: Union[TitleDetectivesData, dict]
 
 
-class FinishQuizResponse(BaseModel):
+class FinishQuizRequest(BaseModel):
     quiz_id: str
+    quiz_data: Union[FinishTitleDetectivesData, dict]
+
+
+class FinishTitleDetectivesResponseData(BaseModel):
     question: GeminiQuestion
     movie: dict
     user_answer: str
@@ -40,9 +44,15 @@ class FinishQuizResponse(BaseModel):
     speech: str
 
 
+class FinishQuizResponse(BaseModel):
+    quiz_id: str
+    quiz_data: Union[FinishTitleDetectivesResponseData, dict]
+
+
 class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     quiz_id: str
+    quiz_type: QuizType
     quiz_data: Union[TitleDetectivesData, dict]
     chat: ChatSession
     started_at: datetime

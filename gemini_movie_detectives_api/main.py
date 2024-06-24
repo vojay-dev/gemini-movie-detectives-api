@@ -13,15 +13,15 @@ from cachetools import TTLCache
 from fastapi import FastAPI
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from google.api_core.exceptions import GoogleAPIError
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
 from .gemini import GeminiClient
-from .model import Stats, LimitResponse, SessionResponse, StatsResponse, UserAnswer, SessionData, FinishQuizResponse, \
-    QuizType, StartQuizResponse
+from .model import Stats, LimitResponse, SessionResponse, StatsResponse, SessionData, \
+    FinishQuizResponse, \
+    QuizType, StartQuizResponse, FinishQuizRequest
 from .prompt import PromptGenerator
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
@@ -204,50 +204,6 @@ async def get_stats():
     )
 
 
-@app.post('/quiz/{quiz_id}/answer')
-@retry(max_retries=settings.quiz_max_retries)
-def finish_quiz(quiz_id: str, user_answer: UserAnswer):
-    session_data: SessionData = session_cache.get(quiz_id)
-
-    if not session_data:
-        logger.info('session not found: %s', quiz_id)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
-
-    try:
-        prompt = prompt_generator.generate_answer_prompt(answer=user_answer.answer)
-
-        chat = session_data.chat
-        del session_cache[quiz_id]
-
-        logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
-        gemini_reply = gemini_client.get_chat_response(chat, prompt)
-        gemini_answer = gemini_client.parse_gemini_answer(gemini_reply)
-
-        stats.points_total += gemini_answer.points
-        return FinishQuizResponse(
-            quiz_id=quiz_id,
-            question=session_data.quiz_data.question,
-            movie=session_data.quiz_data.movie,
-            user_answer=user_answer.answer,
-            result=gemini_answer,
-            speech=speech_client.synthesize_to_file(gemini_answer.answer)
-        )
-    except GoogleAPIError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
-    except BaseException as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
-
-
-@app.get('/audio/{file_id}.mp3', response_class=FileResponse)
-async def get_audio(file_id: str):
-    audio_file_path = Path(f'{speech_client.tmp_audio_dir}/{file_id}.mp3')
-
-    if not audio_file_path.exists():
-        raise HTTPException(status_code=404, detail='Audio file not found')
-
-    return FileResponse(audio_file_path)
-
-
 @app.post('/quiz/{quiz_type}')
 @retry(max_retries=settings.quiz_max_retries)
 def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> StartQuizResponse:
@@ -263,6 +219,7 @@ def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> S
 
     session_cache[quiz_id] = SessionData(
         quiz_id=quiz_id,
+        quiz_type=quiz_type,
         quiz_data=quiz_data,
         chat=chat,
         started_at=datetime.now()
@@ -275,3 +232,49 @@ def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> S
         quiz_type=quiz_type,
         quiz_data=quiz_data
     )
+
+
+@app.post('/quiz/{quiz_id}/answer')
+@retry(max_retries=settings.quiz_max_retries)
+def finish_quiz(quiz_id: str, finish_quiz_request: FinishQuizRequest):
+    if not quiz_id == finish_quiz_request.quiz_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid finish quiz request')
+
+    session_data: SessionData = session_cache.get(quiz_id)
+
+    if not session_data:
+        logger.info('session not found: %s', quiz_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Session not found')
+
+    quiz_type = session_data.quiz_type
+    quiz_data = session_data.quiz_data
+    chat = session_data.chat
+
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Could not load Gemini chat session')
+
+    finish_quiz_data = finish_quiz_request.quiz_data
+
+    del session_cache[quiz_id]
+
+    match quiz_type:
+        case QuizType.TITLE_DETECTIVES: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)
+        case QuizType.SEQUEL_SALAD: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
+        case QuizType.BTTF_TRIVIA: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
+        case QuizType.TRIVIA: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
+        case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
+
+    return FinishQuizResponse(
+        quiz_id=quiz_id,
+        quiz_data=quiz_response_data
+    )
+
+
+@app.get('/audio/{file_id}.mp3', response_class=FileResponse)
+async def get_audio(file_id: str):
+    audio_file_path = Path(f'{speech_client.tmp_audio_dir}/{file_id}.mp3')
+
+    if not audio_file_path.exists():
+        raise HTTPException(status_code=404, detail='Audio file not found')
+
+    return FileResponse(audio_file_path)

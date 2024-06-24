@@ -7,7 +7,8 @@ from vertexai.generative_models import ChatSession
 
 from gemini_movie_detectives_api.config import QuizConfig
 from gemini_movie_detectives_api.gemini import GeminiClient
-from gemini_movie_detectives_api.model import TitleDetectivesData
+from gemini_movie_detectives_api.model import TitleDetectivesData, FinishTitleDetectivesData, \
+    FinishTitleDetectivesResponseData
 from gemini_movie_detectives_api.prompt import PromptGenerator, Language, get_personality_by_name
 from gemini_movie_detectives_api.speech import SpeechClient
 from gemini_movie_detectives_api.tmdb import TmdbClient
@@ -23,7 +24,7 @@ class TitleDetectives:
         self.gemini_client = gemini_client
         self.speech_client = speech_client
 
-    def start_title_detectives(self, quiz_config: QuizConfig, chat: ChatSession):
+    def start_title_detectives(self, quiz_config: QuizConfig, chat: ChatSession) -> TitleDetectivesData:
         movie = self.tmdb_client.get_random_movie(
             page_min=1,
             page_max=100,
@@ -59,6 +60,26 @@ class TitleDetectives:
                 movie=movie,
                 speech=self.speech_client.synthesize_to_file(gemini_question.question),
                 chat=chat
+            )
+        except GoogleAPIError as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
+        except BaseException as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
+
+    def finish_title_detectives(self, finish_quiz_data: FinishTitleDetectivesData, quiz_data: TitleDetectivesData, chat: ChatSession) -> FinishTitleDetectivesResponseData:
+        try:
+            prompt = self.prompt_generator.generate_answer_prompt(answer=finish_quiz_data.answer)
+
+            logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
+            gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
+            gemini_answer = self.gemini_client.parse_gemini_answer(gemini_reply)
+
+            return FinishTitleDetectivesResponseData(
+                question=quiz_data.question,
+                movie=quiz_data.movie,
+                user_answer=finish_quiz_data.answer,
+                result=gemini_answer,
+                speech=self.speech_client.synthesize_to_file(gemini_answer.answer)
             )
         except GoogleAPIError as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
