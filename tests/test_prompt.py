@@ -2,7 +2,7 @@ import unittest
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from gemini_movie_detectives_api.prompt import PromptGenerator, Language, Personality
+from gemini_movie_detectives_api.prompt import TemplateManager, Language, Personality
 
 
 class TestPrompt(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestPrompt(unittest.TestCase):
         overview = 'overview'
         genres = 'action, comedy'
 
-        prompt_generator = PromptGenerator()
+        prompt_generator = TemplateManager()
         prompt = prompt_generator.generate_question_prompt(
             movie_title,
             Language.DEFAULT,
@@ -46,7 +46,7 @@ class TestPrompt(unittest.TestCase):
 
         answer = 'some movie'
 
-        prompt_generator = PromptGenerator()
+        prompt_generator = TemplateManager()
         prompt = prompt_generator.generate_answer_prompt(answer)
 
         expected = env.get_template('prompt_answer.jinja').render(answer=answer)

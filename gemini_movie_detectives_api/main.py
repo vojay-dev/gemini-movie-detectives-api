@@ -22,9 +22,9 @@ from .gemini import GeminiClient
 from .model import Stats, LimitResponse, SessionResponse, StatsResponse, SessionData, \
     FinishQuizResponse, \
     QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest
-from .prompt import PromptGenerator
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
+from .template import TemplateManager
 from .tmdb import TmdbClient
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -50,13 +50,13 @@ gemini_client: GeminiClient = GeminiClient(
     credentials,
     settings.gcp_gemini_model
 )
-prompt_generator: PromptGenerator = PromptGenerator()
+template_manager: TemplateManager = TemplateManager()
 
 tmp_audio_dir = Path("/tmp/movie-detectives/audio")
 tmp_audio_dir.mkdir(parents=True, exist_ok=True)
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 
-title_detectives = TitleDetectives(tmdb_client, prompt_generator, gemini_client, speech_client)
+title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
 
 
 stats = Stats()
@@ -185,8 +185,7 @@ async def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: f
 async def get_sessions():
     return [SessionResponse(
         quiz_id=session.quiz_id,
-        question=session.question,
-        movie=session.movie,
+        quiz_type=session.quiz_type,
         started_at=session.started_at
     ) for session in session_cache.values()]
 

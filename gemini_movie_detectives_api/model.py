@@ -5,8 +5,6 @@ from typing import Union
 from pydantic import BaseModel, ConfigDict
 from vertexai.generative_models import ChatSession
 
-from gemini_movie_detectives_api.gemini import GeminiQuestion, GeminiAnswer
-
 
 class QuizType(str, Enum):
     TITLE_DETECTIVES = 'title-detectives'
@@ -81,8 +79,7 @@ class SessionData(BaseModel):
 
 class SessionResponse(BaseModel):
     quiz_id: str
-    question: GeminiQuestion
-    movie: dict
+    quiz_type: QuizType
     started_at: datetime
 
 
