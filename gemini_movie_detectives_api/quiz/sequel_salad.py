@@ -10,6 +10,7 @@ from starlette import status
 from vertexai.generative_models import ChatSession
 
 from gemini_movie_detectives_api.gemini import GeminiClient
+from gemini_movie_detectives_api.imagen import ImagenClient
 from gemini_movie_detectives_api.model import SequelSaladData, SequelSaladGeminiQuestion, \
     SequelSaladResult, SequelSaladGeminiAnswer, Personality, QuizType
 from gemini_movie_detectives_api.speech import SpeechClient
@@ -24,10 +25,12 @@ class SequelSalad:
         self,
         template_manager: TemplateManager,
         gemini_client: GeminiClient,
+        imagen_client: ImagenClient,
         speech_client: SpeechClient
     ):
         self.template_manager = template_manager
         self.gemini_client = gemini_client
+        self.imagen_client = imagen_client
         self.speech_client = speech_client
 
         with open(f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt', 'r') as file:
@@ -45,10 +48,13 @@ class SequelSalad:
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_question = self._parse_gemini_question(gemini_reply)
 
+            poster = self.imagen_client.generate_image(gemini_question.poster_prompt)
+
             return SequelSaladData(
                 question=gemini_question,
                 franchise=franchise,
-                speech=''
+                speech=self.speech_client.synthesize_to_file(gemini_question.sequel_plot),
+                poster=poster
             )
         except GoogleAPIError as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Union
+from typing import Union, Optional
 
 from pydantic import BaseModel, ConfigDict
 from vertexai.generative_models import ChatSession
@@ -64,6 +64,7 @@ class SequelSaladData(BaseModel):
     question: SequelSaladGeminiQuestion
     franchise: str
     speech: str
+    poster: Optional[str] = None
 
 
 class SequelSaladResult(BaseModel):

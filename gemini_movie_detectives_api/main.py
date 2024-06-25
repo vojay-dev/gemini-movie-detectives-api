@@ -16,6 +16,7 @@ from starlette.responses import FileResponse
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
+from .imagen import ImagenClient
 from .model import LimitResponse, SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, \
     FinishQuizRequest, StartQuizRequest
 from .quiz.sequel_salad import SequelSalad
@@ -47,6 +48,17 @@ gemini_client: GeminiClient = GeminiClient(
     credentials,
     settings.gcp_gemini_model
 )
+
+tmp_images_dir = Path("/tmp/movie-detectives/images")
+tmp_images_dir.mkdir(parents=True, exist_ok=True)
+imagen_client: ImagenClient = ImagenClient(
+    settings.gcp_project_id,
+    settings.gcp_location,
+    credentials,
+    settings.gcp_imagen_model,
+    tmp_images_dir
+)
+
 template_manager: TemplateManager = TemplateManager()
 
 tmp_audio_dir = Path("/tmp/movie-detectives/audio")
@@ -54,7 +66,7 @@ tmp_audio_dir.mkdir(parents=True, exist_ok=True)
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
-sequel_salad = SequelSalad(template_manager, gemini_client, speech_client)
+sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client)
 
 app: FastAPI = FastAPI()
 
@@ -233,3 +245,13 @@ async def get_audio(file_id: str):
         raise HTTPException(status_code=404, detail='Audio file not found')
 
     return FileResponse(audio_file_path)
+
+
+@app.get('/images/{file_id}.png', response_class=FileResponse)
+async def get_audio(file_id: str):
+    image_file_path = Path(f'{imagen_client.tmp_images_dir}/{file_id}.png')
+
+    if not image_file_path.exists():
+        raise HTTPException(status_code=404, detail='Image file not found')
+
+    return FileResponse(image_file_path)

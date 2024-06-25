@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
     tmdb_api_key: str
     stats_path: str = '/tmp/movie-detectives/stats.pkl'
-    gcp_gemini_model: str = 'gemini-1.0-pro'
+    gcp_gemini_model: str = 'gemini-1.5-pro-001'
+    gcp_imagen_model: str = 'imagegeneration@006'
     gcp_project_id: str
     gcp_location: str
     gcp_service_account_file: str
