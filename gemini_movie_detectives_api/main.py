@@ -196,9 +196,9 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)  # todo
-        case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
-        case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
+        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)
+        case QuizType.BTTF_TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
@@ -240,9 +240,9 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)
-        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat)  # todo
-        case QuizType.BTTF_TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
-        case QuizType.TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
+        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat)
+        case QuizType.BTTF_TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     return FinishQuizResponse(

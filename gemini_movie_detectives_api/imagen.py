@@ -26,10 +26,10 @@ class ImagenClient:
 
             self.model.generate_images(
                 prompt=prompt,
-                aspect_ratio="3:4",
+                aspect_ratio='3:4',
                 number_of_images=1,
-                safety_filter_level="block_few",
-                person_generation="allow_adult",
+                safety_filter_level='block_few',
+                person_generation='allow_adult',
             ).images[0].save(image_file_path, include_generation_parameters=False)
 
             file_url = f'/images/{file_id}.png'
