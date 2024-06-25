@@ -1,5 +1,6 @@
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
 from functools import wraps
@@ -14,6 +15,7 @@ from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
 
+from .cleanup import TempDirCleaner
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
 from .imagen import ImagenClient
@@ -40,6 +42,15 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 
 settings: Settings = _get_settings()
 
+# tmp dir for AI generated movie posters
+tmp_images_dir = Path('/tmp/movie-detectives/images')
+
+# tmp dir for speech synthesis
+tmp_audio_dir = Path('/tmp/movie-detectives/audio')
+
+# takes care of creating the directories and cleaning up old files
+cleaner = TempDirCleaner([tmp_images_dir, tmp_audio_dir], age_limit_seconds=3600, interval_minutes=10)
+
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
 credentials: Credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 gemini_client: GeminiClient = GeminiClient(
@@ -49,8 +60,6 @@ gemini_client: GeminiClient = GeminiClient(
     settings.gcp_gemini_model
 )
 
-tmp_images_dir = Path("/tmp/movie-detectives/images")
-tmp_images_dir.mkdir(parents=True, exist_ok=True)
 imagen_client: ImagenClient = ImagenClient(
     settings.gcp_project_id,
     settings.gcp_location,
@@ -60,15 +69,20 @@ imagen_client: ImagenClient = ImagenClient(
 )
 
 template_manager: TemplateManager = TemplateManager()
-
-tmp_audio_dir = Path("/tmp/movie-detectives/audio")
-tmp_audio_dir.mkdir(parents=True, exist_ok=True)
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client)
 
-app: FastAPI = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    cleaner.start()
+    yield
+    cleaner.stop()
+
+
+app: FastAPI = FastAPI(lifespan=lifespan)
 
 # for local development
 origins = [
