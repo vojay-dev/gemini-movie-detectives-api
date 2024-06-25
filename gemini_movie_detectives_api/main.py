@@ -226,7 +226,7 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)
-        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data)  # todo
+        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat)  # todo
         case QuizType.BTTF_TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
         case QuizType.TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')

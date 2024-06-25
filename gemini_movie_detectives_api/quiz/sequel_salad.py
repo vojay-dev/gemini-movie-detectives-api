@@ -16,6 +16,8 @@ from gemini_movie_detectives_api.model import SequelSaladData, SequelSaladGemini
 from gemini_movie_detectives_api.speech import SpeechClient
 from gemini_movie_detectives_api.template import TemplateManager
 
+FRANCHISES_PATH = f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt'
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -33,7 +35,7 @@ class SequelSalad:
         self.imagen_client = imagen_client
         self.speech_client = speech_client
 
-        with open(f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt', 'r') as file:
+        with open(FRANCHISES_PATH, 'r') as file:
             self.franchises = [line.strip() for line in file]
 
     def start_sequel_salad(self, personality: Personality, chat: ChatSession) -> SequelSaladData:
@@ -61,18 +63,25 @@ class SequelSalad:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    @staticmethod
-    def finish_sequel_salad(answer: str, quiz_data: SequelSaladData) -> SequelSaladResult:
-        return SequelSaladResult(
-            question=quiz_data.question,
-            franchise=quiz_data.franchise,
-            user_answer=answer,
-            result=SequelSaladGeminiAnswer(
-                points=1,
-                answer='Back to the Future Part V'
-            ),
-            speech=''
-        )
+    def finish_sequel_salad(self, answer: str, quiz_data: SequelSaladData, chat: ChatSession) -> SequelSaladResult:
+        try:
+            prompt = self._generate_answer_prompt(answer=answer)
+
+            logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
+            gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
+            gemini_answer = self._parse_gemini_answer(gemini_reply)
+
+            return SequelSaladResult(
+                question=quiz_data.question,
+                franchise=quiz_data.franchise,
+                user_answer=answer,
+                result=gemini_answer,
+                speech=self.speech_client.synthesize_to_file(gemini_answer.answer)
+            )
+        except GoogleAPIError as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
+        except BaseException as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
     @staticmethod
     def _parse_gemini_question(gemini_reply: str) -> SequelSaladGeminiQuestion:
