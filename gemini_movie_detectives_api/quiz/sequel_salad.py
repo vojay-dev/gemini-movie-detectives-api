@@ -1,4 +1,7 @@
 import logging
+import os
+import random
+from typing import Any
 
 from fastapi import HTTPException
 from google.api_core.exceptions import GoogleAPIError
@@ -27,9 +30,16 @@ class SequelSalad:
         self.gemini_client = gemini_client
         self.speech_client = speech_client
 
+        with open(f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt', 'r') as file:
+            self.franchises = [line.strip() for line in file]
+
     def start_sequel_salad(self, personality: Personality, chat: ChatSession) -> SequelSaladData:
         try:
-            prompt = self._generate_question_prompt(personality=personality)
+            franchise = random.choice(self.franchises)
+            prompt = self._generate_question_prompt(
+                personality=personality,
+                franchise=franchise
+            )
 
             logger.debug('starting quiz with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
@@ -37,6 +47,7 @@ class SequelSalad:
 
             return SequelSaladData(
                 question=gemini_question,
+                franchise=franchise,
                 speech=''
             )
         except GoogleAPIError as e:
@@ -48,7 +59,7 @@ class SequelSalad:
     def finish_sequel_salad(answer: str, quiz_data: SequelSaladData) -> SequelSaladResult:
         return SequelSaladResult(
             question=quiz_data.question,
-            franchise=quiz_data.question.franchise,
+            franchise=quiz_data.franchise,
             user_answer=answer,
             result=SequelSaladGeminiAnswer(
                 points=1,
@@ -75,13 +86,14 @@ class SequelSalad:
             logger.warning(msg)
             raise ValueError(msg)
 
-    def _generate_question_prompt(self, personality: Personality) -> str:
+    def _generate_question_prompt(self, personality: Personality, **kwargs: Any) -> str:
         personality = self.template_manager.render_personality(personality)
 
         return self.template_manager.render_template(
             quiz_type=QuizType.SEQUEL_SALAD,
             name='prompt_question',
-            personality=personality
+            personality=personality,
+            **kwargs
         )
 
     def _generate_answer_prompt(self, answer: str) -> str:

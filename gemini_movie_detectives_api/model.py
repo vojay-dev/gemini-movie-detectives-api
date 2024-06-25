@@ -50,8 +50,8 @@ class TitleDetectivesResult(BaseModel):
 # Sequel Salad
 
 class SequelSaladGeminiQuestion(BaseModel):
-    franchise: str
     sequel_plot: str
+    sequel_title: str
     poster_prompt: str
 
 
@@ -62,6 +62,7 @@ class SequelSaladGeminiAnswer(BaseModel):
 
 class SequelSaladData(BaseModel):
     question: SequelSaladGeminiQuestion
+    franchise: str
     speech: str
 
 
