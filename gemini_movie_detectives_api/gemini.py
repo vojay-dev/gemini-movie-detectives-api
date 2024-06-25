@@ -2,8 +2,6 @@ import logging
 
 import vertexai
 from google.oauth2.service_account import Credentials
-from pydantic import BaseModel
-from pydantic_core import from_json
 from vertexai import generative_models
 from vertexai.generative_models import GenerativeModel, ChatSession
 
@@ -32,17 +30,6 @@ SAFETY_CONFIG = [
 ]
 
 
-class GeminiQuestion(BaseModel):
-    question: str
-    hint1: str
-    hint2: str
-
-
-class GeminiAnswer(BaseModel):
-    points: int
-    answer: str
-
-
 class GeminiClient:
 
     def __init__(self, project_id: str, location: str, credentials: Credentials, model: str):
@@ -63,21 +50,3 @@ class GeminiClient:
         for chunk in responses:
             text_response.append(chunk.text)
         return ''.join(text_response)
-
-    @staticmethod
-    def parse_gemini_question(gemini_reply: str) -> GeminiQuestion:
-        try:
-            return GeminiQuestion.model_validate(from_json(gemini_reply))
-        except Exception as e:
-            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
-            logger.warning(msg)
-            raise ValueError(msg)
-
-    @staticmethod
-    def parse_gemini_answer(gemini_reply: str) -> GeminiAnswer:
-        try:
-            return GeminiAnswer.model_validate(from_json(gemini_reply))
-        except Exception as e:
-            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
-            logger.warning(msg)
-            raise ValueError(msg)

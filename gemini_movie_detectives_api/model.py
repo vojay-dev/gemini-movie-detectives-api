@@ -22,15 +22,36 @@ class Personality(str, Enum):
     DAD = 'dad.jinja'
 
 
-class StartQuizRequest(BaseModel):
-    quiz_type: QuizType
-    personality: Personality = Personality.DEFAULT
+# Title Detectives
+
+class TitleDetectivesGeminiQuestion(BaseModel):
+    question: str
+    hint1: str
+    hint2: str
+
+
+class TitleDetectivesGeminiAnswer(BaseModel):
+    points: int
+    answer: str
 
 
 class TitleDetectivesData(BaseModel):
-    question: GeminiQuestion
+    question: TitleDetectivesGeminiQuestion
     movie: dict
     speech: str
+
+
+class TitleDetectivesResult(BaseModel):
+    question: TitleDetectivesGeminiQuestion
+    movie: dict
+    user_answer: str
+    result: TitleDetectivesGeminiAnswer
+    speech: str
+
+
+class StartQuizRequest(BaseModel):
+    quiz_type: QuizType
+    personality: Personality = Personality.DEFAULT
 
 
 class StartQuizResponse(BaseModel):
@@ -42,14 +63,6 @@ class StartQuizResponse(BaseModel):
 class FinishQuizRequest(BaseModel):
     quiz_id: str
     answer: Union[str, int]
-
-
-class TitleDetectivesResult(BaseModel):
-    question: GeminiQuestion
-    movie: dict
-    user_answer: str
-    result: GeminiAnswer
-    speech: str
 
 
 class FinishQuizResponse(BaseModel):

@@ -2,12 +2,14 @@ import logging
 
 from fastapi import HTTPException
 from google.api_core.exceptions import GoogleAPIError
+from pydantic_core import from_json
 from starlette import status
 from vertexai.generative_models import ChatSession
 
 from gemini_movie_detectives_api.gemini import GeminiClient
-from gemini_movie_detectives_api.model import TitleDetectivesData, TitleDetectivesResult
-from gemini_movie_detectives_api.prompt import PromptGenerator, Language, Personality
+from gemini_movie_detectives_api.model import TitleDetectivesData, TitleDetectivesResult, TitleDetectivesGeminiQuestion, \
+    TitleDetectivesGeminiAnswer
+from gemini_movie_detectives_api.prompt import PromptGenerator, Personality
 from gemini_movie_detectives_api.speech import SpeechClient
 from gemini_movie_detectives_api.tmdb import TmdbClient
 
@@ -16,7 +18,13 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class TitleDetectives:
 
-    def __init__(self, tmdb_client: TmdbClient, prompt_generator: PromptGenerator, gemini_client: GeminiClient, speech_client: SpeechClient):
+    def __init__(
+        self,
+        tmdb_client: TmdbClient,
+        prompt_generator: PromptGenerator,
+        gemini_client: GeminiClient,
+        speech_client: SpeechClient
+    ):
         self.tmdb_client = tmdb_client
         self.prompt_generator = prompt_generator
         self.gemini_client = gemini_client
@@ -36,7 +44,6 @@ class TitleDetectives:
         try:
             prompt = self.prompt_generator.generate_question_prompt(
                 movie_title=movie['title'],
-                language=Language.DEFAULT,
                 personality=personality,
                 tagline=movie['tagline'],
                 overview=movie['overview'],
@@ -51,7 +58,7 @@ class TitleDetectives:
 
             logger.debug('starting quiz with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
-            gemini_question = self.gemini_client.parse_gemini_question(gemini_reply)
+            gemini_question = self.parse_gemini_question(gemini_reply)
 
             return TitleDetectivesData(
                 question=gemini_question,
@@ -64,13 +71,14 @@ class TitleDetectives:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession) -> TitleDetectivesResult:
+    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData,
+                                chat: ChatSession) -> TitleDetectivesResult:
         try:
             prompt = self.prompt_generator.generate_answer_prompt(answer=answer)
 
             logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
-            gemini_answer = self.gemini_client.parse_gemini_answer(gemini_reply)
+            gemini_answer = self.parse_gemini_answer(gemini_reply)
 
             return TitleDetectivesResult(
                 question=quiz_data.question,
@@ -83,3 +91,21 @@ class TitleDetectives:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Google API error: {e}')
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
+
+    @staticmethod
+    def parse_gemini_question(gemini_reply: str) -> TitleDetectivesGeminiQuestion:
+        try:
+            return TitleDetectivesGeminiQuestion.model_validate(from_json(gemini_reply))
+        except Exception as e:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
+            logger.warning(msg)
+            raise ValueError(msg)
+
+    @staticmethod
+    def parse_gemini_answer(gemini_reply: str) -> TitleDetectivesGeminiAnswer:
+        try:
+            return TitleDetectivesGeminiAnswer.model_validate(from_json(gemini_reply))
+        except Exception as e:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
+            logger.warning(msg)
+            raise ValueError(msg)
