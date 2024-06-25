@@ -69,7 +69,7 @@ imagen_client: ImagenClient = ImagenClient(
 )
 
 template_manager: TemplateManager = TemplateManager()
-speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
+speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials, settings.gcp_tts_lang, settings.gcp_tts_voice)
 
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client)

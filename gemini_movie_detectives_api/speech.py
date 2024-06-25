@@ -12,8 +12,8 @@ class SpeechClient:
         self,
         tmp_audio_dir: Path,
         credentials: Credentials,
-        language_code: str = 'en-US',
-        voice_name: str = 'en-US-Studio-M',
+        language_code: str,
+        voice_name: str,
         audio_encoding: texttospeech.AudioEncoding = texttospeech.AudioEncoding.LINEAR16,
         speaking_rate: float = 0.85
     ) -> None:

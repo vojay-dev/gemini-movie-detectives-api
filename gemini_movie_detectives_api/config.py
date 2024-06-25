@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     stats_path: str = '/tmp/movie-detectives/stats.pkl'
     gcp_gemini_model: str = 'gemini-1.5-pro-001'
     gcp_imagen_model: str = 'imagegeneration@006'
+    gcp_tts_lang: str = 'en-US'
+    gcp_tts_voice: str = 'en-US-Studio-M'
     gcp_project_id: str
     gcp_location: str
     gcp_service_account_file: str
