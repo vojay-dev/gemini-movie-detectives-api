@@ -15,8 +15,16 @@ class QuizType(str, Enum):
     TRIVIA = 'trivia'
 
 
-class FinishTitleDetectivesData(BaseModel):
-    answer: str
+class Personality(str, Enum):
+    DEFAULT = 'default.jinja'
+    CHRISTMAS = 'christmas.jinja'
+    SCIENTIST = 'scientist.jinja'
+    DAD = 'dad.jinja'
+
+
+class StartQuizRequest(BaseModel):
+    quiz_type: QuizType
+    personality: Personality = Personality.DEFAULT
 
 
 class TitleDetectivesData(BaseModel):
@@ -33,10 +41,10 @@ class StartQuizResponse(BaseModel):
 
 class FinishQuizRequest(BaseModel):
     quiz_id: str
-    quiz_data: Union[FinishTitleDetectivesData, dict]
+    answer: Union[str, int]
 
 
-class FinishTitleDetectivesResponseData(BaseModel):
+class TitleDetectivesResult(BaseModel):
     question: GeminiQuestion
     movie: dict
     user_answer: str
@@ -46,7 +54,7 @@ class FinishTitleDetectivesResponseData(BaseModel):
 
 class FinishQuizResponse(BaseModel):
     quiz_id: str
-    quiz_data: Union[FinishTitleDetectivesResponseData, dict]
+    quiz_result: Union[TitleDetectivesResult, dict]
 
 
 class SessionData(BaseModel):

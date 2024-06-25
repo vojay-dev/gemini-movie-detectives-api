@@ -4,27 +4,15 @@ from typing import Any
 from jinja2 import Environment, PackageLoader, select_autoescape
 from pydantic.v1 import validate_arguments
 
+from gemini_movie_detectives_api.model import Personality
+
 PERSONALITY_PATH = 'personality'
 LANGUAGE_PATH = 'language'
-
-
-class Personality(StrEnum):
-    DEFAULT = 'default.jinja'
-    CHRISTMAS = 'christmas.jinja'
-    SCIENTIST = 'scientist.jinja'
-    DAD = 'dad.jinja'
 
 
 class Language(StrEnum):
     DEFAULT = 'en.jinja'
     GERMAN = 'de.jinja'
-
-
-def get_personality_by_name(name: str) -> Personality:
-    try:
-        return Personality[name.upper()]
-    except KeyError:
-        return Personality.DEFAULT
 
 
 def get_language_by_name(name: str) -> Language:
@@ -56,7 +44,7 @@ class PromptGenerator:
         language = self.env.get_template(f'{LANGUAGE_PATH}/{language.value}').render()
 
         # noinspection PyTypeChecker
-        personality = self.env.get_template(f'{PERSONALITY_PATH}/{personality.value}').render()
+        personality = self.env.get_template(f'{PERSONALITY_PATH}/{personality.value}.jinja').render()
 
         return template.render(
             language=language,

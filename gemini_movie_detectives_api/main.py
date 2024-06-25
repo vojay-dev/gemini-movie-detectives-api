@@ -17,11 +17,11 @@ from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
 
-from .config import Settings, TmdbImagesConfig, load_tmdb_images_config, QuizConfig
+from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
 from .model import Stats, LimitResponse, SessionResponse, StatsResponse, SessionData, \
     FinishQuizResponse, \
-    QuizType, StartQuizResponse, FinishQuizRequest
+    QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest
 from .prompt import PromptGenerator
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
@@ -206,15 +206,20 @@ async def get_stats():
 
 @app.post('/quiz/{quiz_type}')
 @retry(max_retries=settings.quiz_max_retries)
-def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> StartQuizResponse:
+def start_quiz(quiz_type: QuizType, request: StartQuizRequest = StartQuizRequest()) -> StartQuizResponse:
+    if quiz_type != request.quiz_type:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid start quiz request')
+
     quiz_id = str(uuid.uuid4())
+
+    personality = request.personality
     chat = gemini_client.start_chat()
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
-        case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
-        case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(quiz_config, chat)  # todo
+        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
+        case QuizType.SEQUEL_SALAD: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
+        case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
+        case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
@@ -236,8 +241,8 @@ def start_quiz(quiz_type: QuizType, quiz_config: QuizConfig = QuizConfig()) -> S
 
 @app.post('/quiz/{quiz_id}/answer')
 @retry(max_retries=settings.quiz_max_retries)
-def finish_quiz(quiz_id: str, finish_quiz_request: FinishQuizRequest):
-    if not quiz_id == finish_quiz_request.quiz_id:
+def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
+    if not quiz_id == request.quiz_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid finish quiz request')
 
     session_data: SessionData = session_cache.get(quiz_id)
@@ -253,20 +258,19 @@ def finish_quiz(quiz_id: str, finish_quiz_request: FinishQuizRequest):
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Could not load Gemini chat session')
 
-    finish_quiz_data = finish_quiz_request.quiz_data
-
+    answer = request.answer
     del session_cache[quiz_id]
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)
-        case QuizType.SEQUEL_SALAD: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
-        case QuizType.BTTF_TRIVIA: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
-        case QuizType.TRIVIA: quiz_response_data = title_detectives.finish_title_detectives(finish_quiz_data, quiz_data, chat)  # todo
+        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)
+        case QuizType.SEQUEL_SALAD: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
+        case QuizType.BTTF_TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
+        case QuizType.TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     return FinishQuizResponse(
         quiz_id=quiz_id,
-        quiz_data=quiz_response_data
+        quiz_result=result
     )
 
 

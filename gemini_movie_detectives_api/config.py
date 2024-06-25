@@ -1,12 +1,6 @@
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from gemini_movie_detectives_api.prompt import Personality, Language
-
-
-class QuizConfig(BaseModel):
-    personality: str = Personality.DEFAULT.name
 
 
 class TmdbImagesConfig(BaseModel):
