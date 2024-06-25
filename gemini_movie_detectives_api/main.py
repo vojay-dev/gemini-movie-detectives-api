@@ -1,8 +1,5 @@
 import logging
-import os
-import pickle
 import uuid
-from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
 from functools import wraps
@@ -19,9 +16,8 @@ from starlette.responses import FileResponse
 
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
-from .model import Stats, LimitResponse, SessionResponse, StatsResponse, SessionData, \
-    FinishQuizResponse, \
-    QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest
+from .model import LimitResponse, SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, \
+    FinishQuizRequest, StartQuizRequest
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
@@ -60,28 +56,7 @@ speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, speech_client)
 
-
-stats = Stats()
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    global stats
-    path = Path(settings.stats_path)
-
-    # load stats on startup
-    if path.exists():
-        with open(settings.stats_path, 'rb') as f:
-            stats = pickle.load(f)
-    yield
-
-    # persist stats on shutdown
-    os.makedirs(path.parent.absolute(), exist_ok=True)
-    with path.open('wb') as f:
-        pickle.dump(stats, f)
-
-
-app: FastAPI = FastAPI(lifespan=lifespan)
+app: FastAPI = FastAPI()
 
 # for local development
 origins = [
@@ -101,22 +76,6 @@ app.add_middleware(
 
 # cache for quiz session, ttl = max session duration in seconds
 session_cache: TTLCache = TTLCache(maxsize=100, ttl=600)
-
-
-def _get_page_min(popularity: int) -> int:
-    return {
-        3: 1,
-        2: 10,
-        1: 50
-    }.get(popularity, 1)
-
-
-def _get_page_max(popularity: int) -> int:
-    return {
-        3: 5,
-        2: 100,
-        1: 300
-    }.get(popularity, 3)
 
 
 call_count: int = 0
@@ -197,16 +156,9 @@ async def get_limit():
     return _get_limit_response()
 
 
-@app.get('/stats')
-async def get_stats():
-    return StatsResponse(
-        stats=stats,
-        limit=_get_limit_response()
-    )
-
-
 @app.post('/quiz/{quiz_type}')
 @retry(max_retries=settings.quiz_max_retries)
+@rate_limit
 def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizResponse:
     if quiz_type != request.quiz_type:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid start quiz request')
@@ -218,7 +170,7 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad()  # todo
+        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)  # todo
         case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
         case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
@@ -230,8 +182,6 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
         chat=chat,
         started_at=datetime.now()
     )
-
-    stats.quiz_count_total += 1
 
     return StartQuizResponse(
         quiz_id=quiz_id,

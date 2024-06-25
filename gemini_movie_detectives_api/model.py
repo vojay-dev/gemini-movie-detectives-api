@@ -52,6 +52,7 @@ class TitleDetectivesResult(BaseModel):
 class SequelSaladGeminiQuestion(BaseModel):
     franchise: str
     sequel_plot: str
+    poster_prompt: str
 
 
 class SequelSaladGeminiAnswer(BaseModel):
@@ -114,13 +115,3 @@ class LimitResponse(BaseModel):
     last_reset_time: datetime
     last_reset_date: datetime
     current_date: datetime
-
-
-class Stats(BaseModel):
-    quiz_count_total: int = 0
-    points_total: int = 0
-
-
-class StatsResponse(BaseModel):
-    stats: Stats
-    limit: LimitResponse
