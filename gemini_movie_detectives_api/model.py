@@ -14,10 +14,10 @@ class QuizType(str, Enum):
 
 
 class Personality(str, Enum):
-    DEFAULT = 'default.jinja'
-    CHRISTMAS = 'christmas.jinja'
-    SCIENTIST = 'scientist.jinja'
-    DAD = 'dad.jinja'
+    DEFAULT = 'default'
+    CHRISTMAS = 'christmas'
+    SCIENTIST = 'scientist'
+    DAD = 'dad'
 
 
 # Title Detectives

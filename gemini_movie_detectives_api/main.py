@@ -205,7 +205,7 @@ async def get_stats():
 
 @app.post('/quiz/{quiz_type}')
 @retry(max_retries=settings.quiz_max_retries)
-def start_quiz(quiz_type: QuizType, request: StartQuizRequest = StartQuizRequest()) -> StartQuizResponse:
+def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizResponse:
     if quiz_type != request.quiz_type:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid start quiz request')
 

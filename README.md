@@ -398,3 +398,17 @@ curl -s -X POST localhost:8000/quiz \
   "movie": {...}
 }
 ```
+
+# WIP - REFACTORING
+
+## Run quiz
+
+```sh
+curl -s -X POST localhost:8000/quiz/title-detectives \
+  -H 'Content-Type: application/json' \
+  -d '{"quiz_type": "title-detectives"}' | jq .
+
+curl -s -X POST localhost:8000/quiz/3a8c4315-1953-4796-a0b0-4b65415bdae8/answer \
+  -H 'Content-Type: application/json' \
+  -d '{"quiz_id": "3a8c4315-1953-4796-a0b0-4b65415bdae8", "answer": "Some Movie"}' | jq .
+```
