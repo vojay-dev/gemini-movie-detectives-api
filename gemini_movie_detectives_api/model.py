@@ -47,6 +47,31 @@ class TitleDetectivesResult(BaseModel):
     speech: str
 
 
+# Sequel Salad
+
+class SequelSaladGeminiQuestion(BaseModel):
+    franchise: str
+    sequel_plot: str
+
+
+class SequelSaladGeminiAnswer(BaseModel):
+    points: int
+    answer: str
+
+
+class SequelSaladData(BaseModel):
+    question: SequelSaladGeminiQuestion
+    speech: str
+
+
+class SequelSaladResult(BaseModel):
+    question: SequelSaladGeminiQuestion
+    franchise: str
+    user_answer: str
+    result: SequelSaladGeminiAnswer
+    speech: str
+
+
 class StartQuizRequest(BaseModel):
     quiz_type: QuizType
     personality: Personality = Personality.DEFAULT
@@ -55,7 +80,7 @@ class StartQuizRequest(BaseModel):
 class StartQuizResponse(BaseModel):
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, dict]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData]
 
 
 class FinishQuizRequest(BaseModel):
@@ -65,14 +90,14 @@ class FinishQuizRequest(BaseModel):
 
 class FinishQuizResponse(BaseModel):
     quiz_id: str
-    quiz_result: Union[TitleDetectivesResult, dict]
+    quiz_result: Union[TitleDetectivesResult, SequelSaladResult]
 
 
 class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, dict]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData]
     chat: ChatSession
     started_at: datetime
 

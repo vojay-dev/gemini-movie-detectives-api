@@ -72,8 +72,7 @@ class TitleDetectives:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData,
-                                chat: ChatSession) -> TitleDetectivesResult:
+    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession) -> TitleDetectivesResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 

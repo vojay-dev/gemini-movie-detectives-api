@@ -22,6 +22,7 @@ from .gemini import GeminiClient
 from .model import Stats, LimitResponse, SessionResponse, StatsResponse, SessionData, \
     FinishQuizResponse, \
     QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest
+from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
 from .template import TemplateManager
@@ -57,6 +58,7 @@ tmp_audio_dir.mkdir(parents=True, exist_ok=True)
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials)
 
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
+sequel_salad = SequelSalad(template_manager, gemini_client, speech_client)
 
 
 stats = Stats()
@@ -216,7 +218,7 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
+        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad()  # todo
         case QuizType.BTTF_TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
         case QuizType.TRIVIA: quiz_data = title_detectives.start_title_detectives(personality, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
@@ -262,7 +264,7 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
 
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)
-        case QuizType.SEQUEL_SALAD: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
+        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data)  # todo
         case QuizType.BTTF_TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
         case QuizType.TRIVIA: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)  # todo
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
