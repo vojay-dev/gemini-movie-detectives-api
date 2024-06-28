@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import HTTPException
 from google.api_core.exceptions import GoogleAPIError
@@ -11,6 +11,7 @@ from gemini_movie_detectives_api.gemini import GeminiClient
 from gemini_movie_detectives_api.model import TitleDetectivesData, TitleDetectivesResult, TitleDetectivesGeminiQuestion, \
     TitleDetectivesGeminiAnswer, Personality, QuizType
 from gemini_movie_detectives_api.speech import SpeechClient
+from gemini_movie_detectives_api.storage import FirestoreClient
 from gemini_movie_detectives_api.template import TemplateManager
 from gemini_movie_detectives_api.tmdb import TmdbClient
 
@@ -24,12 +25,14 @@ class TitleDetectives:
         tmdb_client: TmdbClient,
         template_manager: TemplateManager,
         gemini_client: GeminiClient,
-        speech_client: SpeechClient
+        speech_client: SpeechClient,
+        firestore_client: FirestoreClient
     ):
         self.tmdb_client = tmdb_client
         self.template_manager = template_manager
         self.gemini_client = gemini_client
         self.speech_client = speech_client
+        self.firestore_client = firestore_client
 
     def start_title_detectives(self, personality: Personality, chat: ChatSession) -> TitleDetectivesData:
         movie = self.tmdb_client.get_random_movie(
@@ -72,13 +75,17 @@ class TitleDetectives:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession) -> TitleDetectivesResult:
+    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession, user_id: Optional[str]) -> TitleDetectivesResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 
             logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_answer = self._parse_gemini_answer(gemini_reply)
+
+            if user_id:
+                self.firestore_client.inc_games(user_id, QuizType.TITLE_DETECTIVES)
+                self.firestore_client.inc_score(user_id, QuizType.TITLE_DETECTIVES, gemini_answer.points)
 
             return TitleDetectivesResult(
                 question=quiz_data.question,

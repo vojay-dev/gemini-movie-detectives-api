@@ -1,7 +1,7 @@
 import logging
 import os
 import random
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import HTTPException
 from google.api_core.exceptions import GoogleAPIError
@@ -14,6 +14,7 @@ from gemini_movie_detectives_api.imagen import ImagenClient
 from gemini_movie_detectives_api.model import SequelSaladData, SequelSaladGeminiQuestion, \
     SequelSaladResult, SequelSaladGeminiAnswer, Personality, QuizType
 from gemini_movie_detectives_api.speech import SpeechClient
+from gemini_movie_detectives_api.storage import FirestoreClient
 from gemini_movie_detectives_api.template import TemplateManager
 
 FRANCHISES_PATH = f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt'
@@ -28,12 +29,14 @@ class SequelSalad:
         template_manager: TemplateManager,
         gemini_client: GeminiClient,
         imagen_client: ImagenClient,
-        speech_client: SpeechClient
+        speech_client: SpeechClient,
+        firestore_client: FirestoreClient
     ):
         self.template_manager = template_manager
         self.gemini_client = gemini_client
         self.imagen_client = imagen_client
         self.speech_client = speech_client
+        self.firestore_client = firestore_client
 
         with open(FRANCHISES_PATH, 'r') as file:
             self.franchises = [line.strip() for line in file]
@@ -63,13 +66,17 @@ class SequelSalad:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_sequel_salad(self, answer: str, quiz_data: SequelSaladData, chat: ChatSession) -> SequelSaladResult:
+    def finish_sequel_salad(self, answer: str, quiz_data: SequelSaladData, chat: ChatSession, user_id: Optional[str]) -> SequelSaladResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 
             logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_answer = self._parse_gemini_answer(gemini_reply)
+
+            if user_id:
+                self.firestore_client.inc_games(user_id, QuizType.SEQUEL_SALAD)
+                self.firestore_client.inc_score(user_id, QuizType.SEQUEL_SALAD, gemini_answer.points)
 
             return SequelSaladResult(
                 question=quiz_data.question,

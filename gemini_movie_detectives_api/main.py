@@ -1,4 +1,4 @@
-import json
+import logging
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -9,13 +9,11 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
-import firebase_admin
 from cachetools import TTLCache
-from fastapi import FastAPI, Header, Depends
+from fastapi import FastAPI, Depends
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from firebase_admin import credentials, auth
-from firebase_admin import firestore
+from firebase_admin import credentials as fb_credentials
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
@@ -29,6 +27,7 @@ from .model import LimitResponse, SessionResponse, SessionData, FinishQuizRespon
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
+from .storage import FirestoreClient
 from .template import TemplateManager
 from .tmdb import TmdbClient
 
@@ -46,50 +45,6 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 
 
 settings: Settings = _get_settings()
-
-firebase_credentials = credentials.Certificate(settings.firebase_service_account_file)
-firebase_app = firebase_admin.initialize_app(firebase_credentials)
-firestore_client = firestore.client()
-
-
-def get_or_create_user(user_id: str, x_user_info: Optional[str] = Header(None)) -> dict:
-    user_ref = firestore_client.collection('users').document(user_id)
-    user_doc = user_ref.get()
-
-    if user_doc.exists:
-        return user_doc.to_dict()
-    else:
-        user_data = {
-            'user_id': user_id,
-            'created_at': firestore.firestore.SERVER_TIMESTAMP,
-            'score_total': 0,
-            'games_total': 0,
-        }
-
-        if x_user_info:
-            user_info = json.loads(x_user_info)
-            user_data['display_name'] = user_info.get('displayName')
-            user_data['photo_url'] = user_info.get('photoURL')
-
-        user_ref.set(user_data)
-        return user_data
-
-
-# noinspection PyBroadException
-def get_current_user(authorization: Optional[str] = Header(None), x_user_info: Optional[str] = Header(None)):
-    if authorization:
-        try:
-            token = authorization.split("Bearer ")[1]
-            decoded_token = auth.verify_id_token(token)
-            uid = decoded_token['uid']
-            _ = get_or_create_user(uid, x_user_info)
-
-            return uid
-        except Exception:
-            pass
-
-    return None  # return None for unauthenticated users
-
 
 # tmp dir for AI generated movie posters
 tmp_images_dir = Path('/tmp/movie-detectives/images')
@@ -117,11 +72,14 @@ imagen_client: ImagenClient = ImagenClient(
     tmp_images_dir
 )
 
+firebase_credentials = fb_credentials.Certificate(settings.firebase_service_account_file)
+firestore_client = FirestoreClient(firebase_credentials)
+
 template_manager: TemplateManager = TemplateManager()
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials, settings.gcp_tts_lang, settings.gcp_tts_voice)
 
-title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client)
-sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client)
+title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client, firestore_client)
+sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client)
 
 
 @asynccontextmanager
@@ -267,7 +225,7 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
 
 @app.post('/quiz/{quiz_id}/answer')
 @retry(max_retries=settings.quiz_max_retries)
-def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
+def finish_quiz(quiz_id: str, request: FinishQuizRequest, user_id: Optional[str] = Depends(firestore_client.get_current_user)) -> FinishQuizResponse:
     if not quiz_id == request.quiz_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid finish quiz request')
 
@@ -288,8 +246,8 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest) -> FinishQuizResponse:
     del session_cache[quiz_id]
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat)
-        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat)
+        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat, user_id)
+        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat, user_id)
         case QuizType.BTTF_TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
@@ -321,8 +279,8 @@ async def get_audio(file_id: str):
 
 
 @app.get('/profile')
-async def get_audio(user_id: Optional[str] = Depends(get_current_user)):
+async def get_audio(user_id: Optional[str] = Depends(firestore_client.get_current_user)):
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Unauthorized')
 
-    return get_or_create_user(user_id)
+    return firestore_client.get_or_create_user(user_id)
