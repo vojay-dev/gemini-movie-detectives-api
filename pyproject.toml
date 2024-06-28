@@ -19,6 +19,7 @@ pre-commit = "^3.7.0"
 google-cloud-texttospeech = "^2.16.3"
 emoji = "^2.12.1"
 apscheduler = "^3.10.4"
+firebase-admin = "^6.5.0"
 
 
 [build-system]

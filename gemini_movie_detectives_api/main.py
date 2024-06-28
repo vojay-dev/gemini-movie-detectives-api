@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -6,11 +7,15 @@ from functools import lru_cache
 from functools import wraps
 from pathlib import Path
 from time import sleep
+from typing import Optional
 
+import firebase_admin
 from cachetools import TTLCache
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, Depends
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from firebase_admin import credentials, auth
+from firebase_admin import firestore
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
@@ -41,6 +46,50 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 
 
 settings: Settings = _get_settings()
+
+firebase_credentials = credentials.Certificate(settings.firebase_service_account_file)
+firebase_app = firebase_admin.initialize_app(firebase_credentials)
+firestore_client = firestore.client()
+
+
+def get_or_create_user(user_id: str, x_user_info: Optional[str] = Header(None)) -> dict:
+    user_ref = firestore_client.collection('users').document(user_id)
+    user_doc = user_ref.get()
+
+    if user_doc.exists:
+        return user_doc.to_dict()
+    else:
+        user_data = {
+            'user_id': user_id,
+            'created_at': firestore.firestore.SERVER_TIMESTAMP,
+            'score_total': 0,
+            'games_total': 0,
+        }
+
+        if x_user_info:
+            user_info = json.loads(x_user_info)
+            user_data['display_name'] = user_info.get('displayName')
+            user_data['photo_url'] = user_info.get('photoURL')
+
+        user_ref.set(user_data)
+        return user_data
+
+
+# noinspection PyBroadException
+def get_current_user(authorization: Optional[str] = Header(None), x_user_info: Optional[str] = Header(None)):
+    if authorization:
+        try:
+            token = authorization.split("Bearer ")[1]
+            decoded_token = auth.verify_id_token(token)
+            uid = decoded_token['uid']
+            _ = get_or_create_user(uid, x_user_info)
+
+            return uid
+        except Exception:
+            pass
+
+    return None  # return None for unauthenticated users
+
 
 # tmp dir for AI generated movie posters
 tmp_images_dir = Path('/tmp/movie-detectives/images')
@@ -269,3 +318,11 @@ async def get_audio(file_id: str):
         raise HTTPException(status_code=404, detail='Image file not found')
 
     return FileResponse(image_file_path)
+
+
+@app.get('/profile')
+async def get_audio(user_id: Optional[str] = Depends(get_current_user)):
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Unauthorized')
+
+    return get_or_create_user(user_id)

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     gcp_project_id: str
     gcp_location: str
     gcp_service_account_file: str
+    firebase_service_account_file: str
     quiz_rate_limit: int = 200
     quiz_max_retries: int = 10
 
