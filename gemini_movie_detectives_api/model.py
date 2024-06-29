@@ -103,6 +103,36 @@ class BttfTriviaResult(BaseModel):
     speech: str
 
 
+# Movie Trivia
+
+class TriviaGeminiQuestion(BaseModel):
+    question: str
+    option_1: str
+    option_2: str
+    option_3: str
+    option_4: str
+    correct_answer: int
+
+
+class TriviaGeminiAnswer(BaseModel):
+    answer: str
+
+
+class TriviaData(BaseModel):
+    question: TriviaGeminiQuestion
+    movie: dict
+    speech: str
+
+
+class TriviaResult(BaseModel):
+    question: TriviaGeminiQuestion
+    movie: dict
+    user_answer: int
+    result: TriviaGeminiAnswer
+    points: int
+    speech: str
+
+
 class StartQuizRequest(BaseModel):
     quiz_type: QuizType
     personality: Personality = Personality.DEFAULT
@@ -111,7 +141,7 @@ class StartQuizRequest(BaseModel):
 class StartQuizResponse(BaseModel):
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData, TriviaData]
 
 
 class FinishQuizRequest(BaseModel):
@@ -121,14 +151,14 @@ class FinishQuizRequest(BaseModel):
 
 class FinishQuizResponse(BaseModel):
     quiz_id: str
-    quiz_result: Union[TitleDetectivesResult, SequelSaladResult, BttfTriviaResult]
+    quiz_result: Union[TitleDetectivesResult, SequelSaladResult, BttfTriviaResult, TriviaResult]
 
 
 class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData, TriviaData]
     chat: ChatSession
     started_at: datetime
 

@@ -26,6 +26,7 @@ from .model import LimitResponse, SessionResponse, SessionData, FinishQuizRespon
 from .quiz.bttf_trivia import BttfTrivia
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
+from .quiz.trivia import Trivia
 from .speech import SpeechClient
 from .storage import FirestoreClient
 from .template import TemplateManager
@@ -83,6 +84,7 @@ wiki_client: WikiClient = WikiClient(tmdb_client)
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client, firestore_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client)
 bttf_trivia = BttfTrivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
+trivia = Trivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
 
 
 @asynccontextmanager
@@ -208,7 +210,7 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
         case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
         case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)
         case QuizType.BTTF_TRIVIA: quiz_data = bttf_trivia.start_bttf_trivia(personality, chat)
-        case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.TRIVIA: quiz_data = trivia.start_trivia(personality, chat)
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
@@ -252,7 +254,7 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest, user_id: Optional[str]
         case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat, user_id)
         case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat, user_id)
         case QuizType.BTTF_TRIVIA: result = bttf_trivia.finish_bttf_trivia(answer, quiz_data, chat, user_id)
-        case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.TRIVIA: result = trivia.finish_trivia(answer, quiz_data, chat, user_id)
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     return FinishQuizResponse(
