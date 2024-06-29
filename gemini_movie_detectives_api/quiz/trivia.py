@@ -80,8 +80,8 @@ class Trivia:
             points = 3 if answer == quiz_data.question.correct_answer else 0
 
             if user_id:
-                self.firestore_client.inc_games(user_id, QuizType.BTTF_TRIVIA)
-                self.firestore_client.inc_score(user_id, QuizType.BTTF_TRIVIA, points)
+                self.firestore_client.inc_games(user_id, QuizType.TRIVIA)
+                self.firestore_client.inc_score(user_id, QuizType.TRIVIA, points)
 
             return TriviaResult(
                 question=quiz_data.question,
