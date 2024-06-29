@@ -23,12 +23,14 @@ from .gemini import GeminiClient
 from .imagen import ImagenClient
 from .model import LimitResponse, SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, \
     FinishQuizRequest, StartQuizRequest
+from .quiz.bttf_trivia import BttfTrivia
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
 from .speech import SpeechClient
 from .storage import FirestoreClient
 from .template import TemplateManager
 from .tmdb import TmdbClient
+from .wiki import WikiClient
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -76,9 +78,11 @@ firestore_client = FirestoreClient(firebase_credentials)
 
 template_manager: TemplateManager = TemplateManager()
 speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials, settings.gcp_tts_lang, settings.gcp_tts_voice)
+wiki_client: WikiClient = WikiClient(tmdb_client)
 
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client, firestore_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client)
+bttf_trivia = BttfTrivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
 
 
 @asynccontextmanager
@@ -203,7 +207,7 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
         case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)
-        case QuizType.BTTF_TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.BTTF_TRIVIA: quiz_data = bttf_trivia.start_bttf_trivia(personality, chat)
         case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
@@ -247,7 +251,7 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest, user_id: Optional[str]
     match quiz_type:
         case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat, user_id)
         case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat, user_id)
-        case QuizType.BTTF_TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
+        case QuizType.BTTF_TRIVIA: result = bttf_trivia.finish_bttf_trivia(answer, quiz_data, chat, user_id)
         case QuizType.TRIVIA: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} not implemented')
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 

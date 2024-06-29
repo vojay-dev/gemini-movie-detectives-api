@@ -47,13 +47,19 @@ class WikiClient:
             except BaseException as e:
                 retries += 1
                 if retries >= self.MAX_RETRIES:
-                    raise ValueError("Failed to get random movie facts after multiple attempts") from e
+                    raise ValueError('Failed to get random movie facts after multiple attempts') from e
                 sleep(self.RETRY_DELAY)
 
-    @staticmethod
-    def get_random_bttf_facts() -> str:
-        related_pages = wikipedia.search('Back to the Future')
-        if not related_pages:
-            raise ValueError(f'No Wikipedia page found')
+    def get_random_bttf_facts(self) -> str:
+        retries = 0
+        while retries < self.MAX_RETRIES:
+            try:
+                related_pages = wikipedia.search('Back to the Future')
+                random_page = random.choice(related_pages)
 
-        return wikipedia.page(random.choice(related_pages)).content
+                return wikipedia.page(random_page).content
+            except BaseException as e:
+                retries += 1
+                if retries >= self.MAX_RETRIES:
+                    raise ValueError('Failed to get bttf facts after multiple attempts') from e
+                sleep(self.RETRY_DELAY)

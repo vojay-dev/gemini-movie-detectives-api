@@ -75,6 +75,34 @@ class SequelSaladResult(BaseModel):
     speech: str
 
 
+# Back to the Future Trivia
+
+class BttfTriviaGeminiQuestion(BaseModel):
+    question: str
+    option_1: str
+    option_2: str
+    option_3: str
+    option_4: str
+    correct_answer: int
+
+
+class BttfTriviaGeminiAnswer(BaseModel):
+    answer: str
+
+
+class BttfTriviaData(BaseModel):
+    question: BttfTriviaGeminiQuestion
+    speech: str
+
+
+class BttfTriviaResult(BaseModel):
+    question: BttfTriviaGeminiQuestion
+    user_answer: int
+    result: BttfTriviaGeminiAnswer
+    points: int
+    speech: str
+
+
 class StartQuizRequest(BaseModel):
     quiz_type: QuizType
     personality: Personality = Personality.DEFAULT
@@ -83,7 +111,7 @@ class StartQuizRequest(BaseModel):
 class StartQuizResponse(BaseModel):
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, SequelSaladData]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData]
 
 
 class FinishQuizRequest(BaseModel):
@@ -93,14 +121,14 @@ class FinishQuizRequest(BaseModel):
 
 class FinishQuizResponse(BaseModel):
     quiz_id: str
-    quiz_result: Union[TitleDetectivesResult, SequelSaladResult]
+    quiz_result: Union[TitleDetectivesResult, SequelSaladResult, BttfTriviaResult]
 
 
 class SessionData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     quiz_id: str
     quiz_type: QuizType
-    quiz_data: Union[TitleDetectivesData, SequelSaladData]
+    quiz_data: Union[TitleDetectivesData, SequelSaladData, BttfTriviaData]
     chat: ChatSession
     started_at: datetime
 
