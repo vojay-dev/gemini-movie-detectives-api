@@ -1,5 +1,4 @@
 import logging
-import os
 import random
 from typing import Any, Optional
 
@@ -16,8 +15,6 @@ from gemini_movie_detectives_api.model import SequelSaladData, SequelSaladGemini
 from gemini_movie_detectives_api.speech import SpeechClient
 from gemini_movie_detectives_api.storage import FirestoreClient
 from gemini_movie_detectives_api.template import TemplateManager
-
-FRANCHISES_PATH = f'{os.path.dirname(os.path.abspath(__file__))}/../data/franchises.txt'
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -38,12 +35,9 @@ class SequelSalad:
         self.speech_client = speech_client
         self.firestore_client = firestore_client
 
-        with open(FRANCHISES_PATH, 'r') as file:
-            self.franchises = [line.strip() for line in file]
-
     def start_sequel_salad(self, personality: Personality, chat: ChatSession) -> SequelSaladData:
         try:
-            franchise = random.choice(self.franchises)
+            franchise = random.choice(self.firestore_client.get_franchises())
             prompt = self._generate_question_prompt(
                 personality=personality,
                 franchise=franchise

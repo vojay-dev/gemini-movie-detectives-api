@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import Optional
+from functools import lru_cache
+from typing import Optional, List
 
 import firebase_admin
 from fastapi import Header
@@ -101,3 +102,13 @@ class FirestoreClient:
                 user_ref.update(user_data)
         except Exception as e:
             logger.error(f'Error increasing score: {e}')
+
+    @lru_cache
+    def get_franchises(self) -> List[str]:
+        franchises_ref = self.firestore_client.collection('movie-data').document('franchises')
+        franchises_doc = franchises_ref.get()
+
+        if not franchises_doc.exists or 'franchises' not in franchises_doc.to_dict() or not franchises_doc.to_dict()['franchises']:
+            raise ValueError('Franchises document not found or empty')
+
+        return franchises_doc.to_dict()['franchises']
