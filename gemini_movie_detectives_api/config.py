@@ -16,7 +16,10 @@ class TmdbImagesConfig(BaseModel):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
     tmdb_api_key: str
-    stats_path: str = '/tmp/movie-detectives/stats.pkl'
+    tmp_images_dir: str = '/tmp/movie-detectives/images'
+    tmp_audio_dir: str = '/tmp/movie-detectives/audio'
+    cleanup_interval_min: int = 10
+    cleanup_file_max_age_sec: int = 3600
     gcp_gemini_model: str = 'gemini-1.5-pro-001'
     gcp_imagen_model: str = 'imagegeneration@006'
     gcp_tts_lang: str = 'en-US'
@@ -25,8 +28,7 @@ class Settings(BaseSettings):
     gcp_location: str
     gcp_service_account_file: str
     firebase_service_account_file: str
-    quiz_rate_limit: int = 200
-    quiz_max_retries: int = 10
+    quiz_max_retries: int = 4
 
 
 def load_tmdb_images_config(settings: Settings) -> TmdbImagesConfig:

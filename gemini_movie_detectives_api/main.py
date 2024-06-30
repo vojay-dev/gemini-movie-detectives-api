@@ -48,15 +48,22 @@ def _get_tmdb_images_config() -> TmdbImagesConfig:
 settings: Settings = _get_settings()
 
 # tmp dir for AI generated movie posters
-tmp_images_dir = Path('/tmp/movie-detectives/images')
+tmp_images_dir = Path(settings.tmp_images_dir)
 
 # tmp dir for speech synthesis
-tmp_audio_dir = Path('/tmp/movie-detectives/audio')
+tmp_audio_dir = Path(settings.tmp_images_dir)
 
 # takes care of creating the directories and cleaning up old files
-cleaner = TempDirCleaner([tmp_images_dir, tmp_audio_dir], age_limit_seconds=3600, interval_minutes=10)
+cleaner = TempDirCleaner(
+    [tmp_images_dir, tmp_audio_dir],
+    age_limit_seconds=settings.cleanup_file_max_age_sec,
+    interval_minutes=settings.cleanup_interval_min
+)
 
+# TMDB client
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
+
+# GCP clients (Gemini, Imagen and Text-To-Speech)
 credentials: Credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 gemini_client: GeminiClient = GeminiClient(
     settings.gcp_project_id,
@@ -64,7 +71,6 @@ gemini_client: GeminiClient = GeminiClient(
     credentials,
     settings.gcp_gemini_model
 )
-
 imagen_client: ImagenClient = ImagenClient(
     settings.gcp_project_id,
     settings.gcp_location,
@@ -72,14 +78,19 @@ imagen_client: ImagenClient = ImagenClient(
     settings.gcp_imagen_model,
     tmp_images_dir
 )
+speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials, settings.gcp_tts_lang, settings.gcp_tts_voice)
 
+# Firestore client
 firebase_credentials = fb_credentials.Certificate(settings.firebase_service_account_file)
 firestore_client = FirestoreClient(firebase_credentials)
 
-template_manager: TemplateManager = TemplateManager()
-speech_client: SpeechClient = SpeechClient(tmp_audio_dir, credentials, settings.gcp_tts_lang, settings.gcp_tts_voice)
+# Wikipedia client
 wiki_client: WikiClient = WikiClient(tmdb_client)
 
+# Jinja prompt template manager
+template_manager: TemplateManager = TemplateManager()
+
+# Quiz handlers
 title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client, firestore_client)
 sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client)
 bttf_trivia = BttfTrivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
@@ -115,30 +126,6 @@ app.add_middleware(
 session_cache: TTLCache = TTLCache(maxsize=100, ttl=600)
 
 
-call_count: int = 0
-last_reset_time: datetime = datetime.now()
-
-
-def rate_limit(func: callable) -> callable:
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> callable:
-        global call_count
-        global last_reset_time
-
-        # reset call count if the day has changed
-        if datetime.now().date() > last_reset_time.date():
-            call_count = 0
-            last_reset_time = datetime.now()
-
-        if call_count >= settings.quiz_rate_limit:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Daily limit reached')
-
-        call_count += 1
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 def retry(max_retries: int) -> callable:
     def decorator(func) -> callable:
         @wraps(func)
@@ -169,15 +156,6 @@ async def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: f
     return tmdb_client.get_random_movie(page_min, page_max, vote_avg_min, vote_count_min)
 
 
-@app.get('/sessions')
-async def get_sessions():
-    return [SessionResponse(
-        quiz_id=session.quiz_id,
-        quiz_type=session.quiz_type,
-        started_at=session.started_at
-    ) for session in session_cache.values()]
-
-
 @app.get('/limits')
 async def get_limit():
     return LimitsResponse(
@@ -189,7 +167,6 @@ async def get_limit():
 
 @app.post('/quiz/{quiz_type}')
 @retry(max_retries=settings.quiz_max_retries)
-@rate_limit
 def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizResponse:
     if quiz_type != request.quiz_type:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid start quiz request')
