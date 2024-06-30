@@ -1,17 +1,29 @@
 import json
 import logging
+from datetime import datetime
 from functools import lru_cache
 from typing import Optional, List
 
 import firebase_admin
+import pytz
 from fastapi import Header
 from firebase_admin import auth
 from firebase_admin import firestore
 from firebase_admin.credentials import Certificate
+from google.cloud.firestore_v1 import transactional, Transaction
 
 from gemini_movie_detectives_api.model import QuizType
 
 logger = logging.getLogger(__name__)
+
+
+class LimitExceededError(Exception):
+
+    def __init__(self, message: str, quiz_type: QuizType, usage: int, limit: int):
+        super().__init__(message)
+        self.quiz_type = quiz_type
+        self.usage = usage
+        self.limit = limit
 
 
 class FirestoreClient:
@@ -50,7 +62,6 @@ class FirestoreClient:
             user_ref.set(user_data)
             return user_data
 
-    # noinspection PyBroadException
     def get_current_user(self, authorization: Optional[str] = Header(None), x_user_info: Optional[str] = Header(None)):
         if authorization:
             try:
@@ -103,6 +114,7 @@ class FirestoreClient:
         except Exception as e:
             logger.error(f'Error increasing score: {e}')
 
+    # noinspection PyBroadException
     @lru_cache
     def get_franchises(self) -> List[str]:
         franchises_ref = self.firestore_client.collection('movie-data').document('franchises')
@@ -112,3 +124,58 @@ class FirestoreClient:
             raise ValueError('Franchises document not found or empty')
 
         return franchises_doc.to_dict()['franchises']
+
+    def get_limits(self):
+        limits_doc = self.firestore_client.collection('limits').document('limits').get()
+        if not limits_doc.exists:
+            raise ValueError('Limits document not found')
+
+        return limits_doc.to_dict()
+
+    def get_usage_counts(self):
+        today = datetime.now(pytz.utc).date().isoformat()
+        usage_ref = self.firestore_client.collection('limits').document(f'usage_{today}')
+        usage_doc = usage_ref.get()
+
+        if not usage_doc.exists:
+            return {qt.value: 0 for qt in QuizType}
+
+        return usage_doc.to_dict()['counts']
+
+    def update_usage_count(self, quiz_type: QuizType):
+        transaction = self.firestore_client.transaction()
+
+        today = datetime.now(pytz.utc).date().isoformat()
+        usage_ref = self.firestore_client.collection('limits').document(f'usage_{today}')
+
+        return self._update_usage_count(transaction, self.get_limits(), quiz_type, usage_ref)
+
+    @staticmethod
+    @firestore.transactional
+    def _update_usage_count(transaction: Transaction, limits: dict, quiz_type: QuizType, usage_ref: firestore.DocumentReference):
+        if quiz_type not in limits:
+            raise ValueError(f'No limit configured for {quiz_type}')
+
+        usage_doc = usage_ref.get(transaction=transaction)
+
+        if not usage_doc.exists:
+            usage = {'counts': {qt.value: 0 for qt in QuizType}}
+            transaction.set(usage_ref, usage)
+        else:
+            usage = usage_doc.to_dict()
+
+        current_count = usage['counts'].get(quiz_type, 0)
+
+        if current_count >= limits[quiz_type]:
+            raise LimitExceededError(
+                f'Usage limit exceeded for {quiz_type}',
+                quiz_type,
+                current_count,
+                limits[quiz_type]
+            )
+
+        updated_count = current_count + 1
+        usage['counts'][quiz_type] = updated_count
+        transaction.set(usage_ref, usage, merge=True)
+
+        return updated_count

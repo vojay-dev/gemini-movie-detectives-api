@@ -21,14 +21,13 @@ from .cleanup import TempDirCleaner
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
 from .imagen import ImagenClient
-from .model import LimitResponse, SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, \
-    FinishQuizRequest, StartQuizRequest
+from .model import SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest, LimitsResponse
 from .quiz.bttf_trivia import BttfTrivia
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
 from .quiz.trivia import Trivia
 from .speech import SpeechClient
-from .storage import FirestoreClient
+from .storage import FirestoreClient, LimitExceededError
 from .template import TemplateManager
 from .tmdb import TmdbClient
 from .wiki import WikiClient
@@ -120,16 +119,6 @@ call_count: int = 0
 last_reset_time: datetime = datetime.now()
 
 
-def _get_limit_response() -> LimitResponse:
-    return LimitResponse(
-        daily_limit=settings.quiz_rate_limit,
-        quiz_count=call_count,
-        last_reset_time=last_reset_time,
-        last_reset_date=last_reset_time.date(),
-        current_date=datetime.now().date()
-    )
-
-
 def rate_limit(func: callable) -> callable:
     @wraps(func)
     def wrapper(*args, **kwargs) -> callable:
@@ -189,9 +178,13 @@ async def get_sessions():
     ) for session in session_cache.values()]
 
 
-@app.get('/limit')
+@app.get('/limits')
 async def get_limit():
-    return _get_limit_response()
+    return LimitsResponse(
+        limits=firestore_client.get_limits(),
+        usage_counts=firestore_client.get_usage_counts(),
+        current_date=datetime.now()
+    )
 
 
 @app.post('/quiz/{quiz_type}')
@@ -200,6 +193,13 @@ async def get_limit():
 def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizResponse:
     if quiz_type != request.quiz_type:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid start quiz request')
+
+    try:
+        firestore_client.update_usage_count(quiz_type)
+    except LimitExceededError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     quiz_id = str(uuid.uuid4())
 

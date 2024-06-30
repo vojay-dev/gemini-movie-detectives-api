@@ -169,9 +169,7 @@ class SessionResponse(BaseModel):
     started_at: datetime
 
 
-class LimitResponse(BaseModel):
-    daily_limit: int
-    quiz_count: int
-    last_reset_time: datetime
-    last_reset_date: datetime
+class LimitsResponse(BaseModel):
+    limits: dict
+    usage_counts: dict
     current_date: datetime
