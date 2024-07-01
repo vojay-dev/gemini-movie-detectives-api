@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 GENERATION_CONFIG = {
-    'temperature': 0.5,
+    'temperature': 0.6,
     # initialize Gemini with JSON mode enabled, see: https://ai.google.dev/gemini-api/docs/api-overview#json
     'response_mime_type': 'application/json'
 }

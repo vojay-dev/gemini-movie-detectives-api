@@ -10,7 +10,7 @@ from fastapi import Header
 from firebase_admin import auth
 from firebase_admin import firestore
 from firebase_admin.credentials import Certificate
-from google.cloud.firestore_v1 import transactional, Transaction
+from google.cloud.firestore_v1 import Transaction
 
 from gemini_movie_detectives_api.model import QuizType
 
@@ -71,7 +71,8 @@ class FirestoreClient:
                 _ = self.get_or_create_user(uid, x_user_info)
 
                 return uid
-            except Exception:
+            except Exception as e:
+                logger.warning(f'Error verifying token or fetching user data: {e}')
                 pass
 
         return None  # return None for unauthenticated users
@@ -121,14 +122,16 @@ class FirestoreClient:
         franchises_doc = franchises_ref.get()
 
         if not franchises_doc.exists or 'franchises' not in franchises_doc.to_dict() or not franchises_doc.to_dict()['franchises']:
-            raise ValueError('Franchises document not found or empty')
+            logger.warning('No franchises document found, creating default franchises (ensure to add more later)')
+            return self._init_franchises()
 
         return franchises_doc.to_dict()['franchises']
 
     def get_limits(self) -> dict:
         limits_doc = self.firestore_client.collection('limits').document('limits').get()
         if not limits_doc.exists:
-            raise ValueError('Limits document not found')
+            logger.warning('No limits document found, creating default limits')
+            return self._init_limits()
 
         return limits_doc.to_dict()
 
@@ -149,6 +152,26 @@ class FirestoreClient:
         usage_ref = self.firestore_client.collection('limits').document(f'usage_{today}')
 
         return self._update_usage_count(transaction, self.get_limits(), quiz_type, usage_ref)
+
+    def _init_franchises(self) -> List[str]:
+        franchises = ['Harry Potter', 'Star Wars', 'Marvel Cinematic Universe', 'The Lord of the Rings', 'James Bond']
+        franchises_ref = self.firestore_client.collection('movie-data').document('franchises')
+        franchises_ref.set({'franchises': franchises})
+
+        return franchises
+
+    def _init_limits(self) -> dict:
+        limits = {
+            QuizType.TITLE_DETECTIVES: 10,
+            QuizType.SEQUEL_SALAD: 10,
+            QuizType.BTTF_TRIVIA: 10,
+            QuizType.TRIVIA: 10
+        }
+
+        limits_ref = self.firestore_client.collection('limits').document('limits')
+        limits_ref.set(limits)
+
+        return limits
 
     @staticmethod
     @firestore.transactional
