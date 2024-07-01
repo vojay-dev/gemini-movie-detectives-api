@@ -19,10 +19,14 @@ class SpeechClient:
     ) -> None:
         self.tmp_audio_dir = tmp_audio_dir
         self.client = texttospeech.TextToSpeechClient(credentials=credentials)
+
+        # noinspection PyTypeChecker
         self.voice = texttospeech.VoiceSelectionParams(
             language_code=language_code,
             name=voice_name
         )
+
+        # noinspection PyTypeChecker
         self.audio_config = texttospeech.AudioConfig(
             audio_encoding=audio_encoding,
             speaking_rate=speaking_rate
@@ -32,6 +36,7 @@ class SpeechClient:
         # remove emojis
         text = emoji.replace_emoji(text, replace='')
 
+        # noinspection PyTypeChecker
         synthesis_input = texttospeech.SynthesisInput(text=text)
         response = self.client.synthesize_speech(
             input=synthesis_input,

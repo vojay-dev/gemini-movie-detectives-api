@@ -8,7 +8,7 @@ from starlette import status
 from vertexai.generative_models import ChatSession
 
 from gemini_movie_detectives_api.gemini import GeminiClient
-from gemini_movie_detectives_api.model import TitleDetectivesData, TitleDetectivesResult, Personality, QuizType, \
+from gemini_movie_detectives_api.model import Personality, QuizType, \
     BttfTriviaData, BttfTriviaGeminiQuestion, BttfTriviaGeminiAnswer, BttfTriviaResult
 from gemini_movie_detectives_api.speech import SpeechClient
 from gemini_movie_detectives_api.storage import FirestoreClient

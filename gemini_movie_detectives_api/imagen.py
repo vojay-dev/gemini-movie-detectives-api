@@ -35,4 +35,5 @@ class ImagenClient:
             file_url = f'/images/{file_id}.png'
             return file_url
         except BaseException as e:
+            logger.warning('could not generate image: %s', e)
             return None

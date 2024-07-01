@@ -42,7 +42,7 @@ class TmdbClient:
 
         return movies
 
-    def get_random_movie(self, page_min: int, page_max: int, vote_avg_min: float, vote_count_min: float):
+    def get_random_movie(self, page_min: int, page_max: int, vote_avg_min: float, vote_count_min: float) -> dict | None:
         movies = self.get_movies(random.randint(page_min, page_max), vote_avg_min, vote_count_min)
         if not movies:
             return None
@@ -50,7 +50,7 @@ class TmdbClient:
         return self.get_movie_details(random.choice(movies)['id'])
 
     @lru_cache(maxsize=1024)
-    def get_movie_details(self, movie_id: int):
+    def get_movie_details(self, movie_id: int) -> dict:
         response = httpx.get(f'https://api.themoviedb.org/3/movie/{movie_id}', headers={
             'Authorization': f'Bearer {self.tmdb_api_key}'
         }, params={

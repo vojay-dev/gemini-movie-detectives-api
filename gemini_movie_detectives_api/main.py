@@ -21,7 +21,8 @@ from .cleanup import TempDirCleaner
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
 from .imagen import ImagenClient
-from .model import SessionResponse, SessionData, FinishQuizResponse, QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest, LimitsResponse
+from .model import SessionData, FinishQuizResponse, QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest, \
+    LimitsResponse
 from .quiz.bttf_trivia import BttfTrivia
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives

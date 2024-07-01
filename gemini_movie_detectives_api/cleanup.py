@@ -24,7 +24,7 @@ class TempDirCleaner:
         # perform initial cleanup
         self.cleanup()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         now = time.time()
         for dir_path in self.dir_paths:
             for filename in os.listdir(dir_path):
@@ -35,11 +35,11 @@ class TempDirCleaner:
                         os.remove(file_path)
                         logger.info('Removed %s', file_path)
 
-    def start(self):
+    def start(self) -> None:
         self.scheduler.add_job(self.cleanup, 'interval', minutes=self.interval_minutes)
         self.scheduler.start()
         logger.info('Started temp dir cleaner with interval %d minutes', self.interval_minutes)
 
-    def stop(self):
+    def stop(self) -> None:
         self.scheduler.shutdown()
         logger.info('Stopped temp dir cleaner')
