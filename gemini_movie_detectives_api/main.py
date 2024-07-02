@@ -1,5 +1,4 @@
 import logging
-import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -93,10 +92,10 @@ wiki_client: WikiClient = WikiClient(tmdb_client)
 template_manager: TemplateManager = TemplateManager()
 
 # Quiz handlers
-title_detectives = TitleDetectives(tmdb_client, template_manager, gemini_client, speech_client, firestore_client)
-sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client)
-bttf_trivia = BttfTrivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
-trivia = Trivia(wiki_client, template_manager, gemini_client, speech_client, firestore_client)
+title_detectives = TitleDetectives(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
+sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
+bttf_trivia = BttfTrivia(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
+trivia = Trivia(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
 
 
 @asynccontextmanager
@@ -186,10 +185,10 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
     chat = gemini_client.start_chat()
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_title_detectives(personality, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_sequel_salad(personality, chat)
-        case QuizType.BTTF_TRIVIA: quiz_data = bttf_trivia.start_bttf_trivia(personality, chat)
-        case QuizType.TRIVIA: quiz_data = trivia.start_trivia(personality, chat)
+        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_quiz(personality, chat)
+        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_quiz(personality, chat)
+        case QuizType.BTTF_TRIVIA: quiz_data = bttf_trivia.start_quiz(personality, chat)
+        case QuizType.TRIVIA: quiz_data = trivia.start_quiz(personality, chat)
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
@@ -230,10 +229,10 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest, user_id: Optional[str]
     del session_cache[quiz_id]
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_title_detectives(answer, quiz_data, chat, user_id)
-        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_sequel_salad(answer, quiz_data, chat, user_id)
-        case QuizType.BTTF_TRIVIA: result = bttf_trivia.finish_bttf_trivia(answer, quiz_data, chat, user_id)
-        case QuizType.TRIVIA: result = trivia.finish_trivia(answer, quiz_data, chat, user_id)
+        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.BTTF_TRIVIA: result = bttf_trivia.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.TRIVIA: result = trivia.finish_quiz(answer, quiz_data, chat, user_id)
         case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     return FinishQuizResponse(

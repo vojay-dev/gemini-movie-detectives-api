@@ -7,35 +7,18 @@ from pydantic_core import from_json
 from starlette import status
 from vertexai.generative_models import ChatSession
 
-from gemini_movie_detectives_api.gemini import GeminiClient
 from gemini_movie_detectives_api.model import Personality, QuizType, \
     TriviaData, TriviaGeminiAnswer, \
     TriviaGeminiQuestion, TriviaResult
-from gemini_movie_detectives_api.speech import SpeechClient
-from gemini_movie_detectives_api.storage import FirestoreClient
-from gemini_movie_detectives_api.template import TemplateManager
-from gemini_movie_detectives_api.wiki import WikiClient, MovieFacts
+from gemini_movie_detectives_api.quiz.base import AbstractQuiz
+from gemini_movie_detectives_api.wiki import MovieFacts
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class Trivia:
+class Trivia(AbstractQuiz[TriviaData, TriviaResult]):
 
-    def __init__(
-        self,
-        wiki_client: WikiClient,
-        template_manager: TemplateManager,
-        gemini_client: GeminiClient,
-        speech_client: SpeechClient,
-        firestore_client: FirestoreClient
-    ):
-        self.wiki_client = wiki_client
-        self.template_manager = template_manager
-        self.gemini_client = gemini_client
-        self.speech_client = speech_client
-        self.firestore_client = firestore_client
-
-    def start_trivia(self, personality: Personality, chat: ChatSession) -> TriviaData:
+    def start_quiz(self, personality: Personality, chat: ChatSession) -> TriviaData:
         movie_facts: MovieFacts = self.wiki_client.get_random_movie_facts()
         movie = movie_facts.movie
 
@@ -69,7 +52,7 @@ class Trivia:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_trivia(self, answer: int, quiz_data: TriviaData, chat: ChatSession, user_id: Optional[str]) -> TriviaResult:
+    def finish_quiz(self, answer: int, quiz_data: TriviaData, chat: ChatSession, user_id: Optional[str]) -> TriviaResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 

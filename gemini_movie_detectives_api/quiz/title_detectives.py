@@ -7,34 +7,16 @@ from pydantic_core import from_json
 from starlette import status
 from vertexai.generative_models import ChatSession
 
-from gemini_movie_detectives_api.gemini import GeminiClient
 from gemini_movie_detectives_api.model import TitleDetectivesData, TitleDetectivesResult, \
     TitleDetectivesGeminiQuestion, TitleDetectivesGeminiAnswer, Personality, QuizType
-from gemini_movie_detectives_api.speech import SpeechClient
-from gemini_movie_detectives_api.storage import FirestoreClient
-from gemini_movie_detectives_api.template import TemplateManager
-from gemini_movie_detectives_api.tmdb import TmdbClient
+from gemini_movie_detectives_api.quiz.base import AbstractQuiz
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class TitleDetectives:
+class TitleDetectives(AbstractQuiz[TitleDetectivesData, TitleDetectivesResult]):
 
-    def __init__(
-        self,
-        tmdb_client: TmdbClient,
-        template_manager: TemplateManager,
-        gemini_client: GeminiClient,
-        speech_client: SpeechClient,
-        firestore_client: FirestoreClient
-    ):
-        self.tmdb_client = tmdb_client
-        self.template_manager = template_manager
-        self.gemini_client = gemini_client
-        self.speech_client = speech_client
-        self.firestore_client = firestore_client
-
-    def start_title_detectives(self, personality: Personality, chat: ChatSession) -> TitleDetectivesData:
+    def start_quiz(self, personality: Personality, chat: ChatSession) -> TitleDetectivesData:
         movie = self.tmdb_client.get_random_movie(
             page_min=1,
             page_max=100,
@@ -74,7 +56,7 @@ class TitleDetectives:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_title_detectives(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession, user_id: Optional[str]) -> TitleDetectivesResult:
+    def finish_quiz(self, answer: str, quiz_data: TitleDetectivesData, chat: ChatSession, user_id: Optional[str]) -> TitleDetectivesResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 

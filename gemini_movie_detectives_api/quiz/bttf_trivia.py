@@ -7,34 +7,16 @@ from pydantic_core import from_json
 from starlette import status
 from vertexai.generative_models import ChatSession
 
-from gemini_movie_detectives_api.gemini import GeminiClient
 from gemini_movie_detectives_api.model import Personality, QuizType, \
     BttfTriviaData, BttfTriviaGeminiQuestion, BttfTriviaGeminiAnswer, BttfTriviaResult
-from gemini_movie_detectives_api.speech import SpeechClient
-from gemini_movie_detectives_api.storage import FirestoreClient
-from gemini_movie_detectives_api.template import TemplateManager
-from gemini_movie_detectives_api.wiki import WikiClient
+from gemini_movie_detectives_api.quiz.base import AbstractQuiz
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class BttfTrivia:
+class BttfTrivia(AbstractQuiz[BttfTriviaData, BttfTriviaResult]):
 
-    def __init__(
-        self,
-        wiki_client: WikiClient,
-        template_manager: TemplateManager,
-        gemini_client: GeminiClient,
-        speech_client: SpeechClient,
-        firestore_client: FirestoreClient
-    ):
-        self.wiki_client = wiki_client
-        self.template_manager = template_manager
-        self.gemini_client = gemini_client
-        self.speech_client = speech_client
-        self.firestore_client = firestore_client
-
-    def start_bttf_trivia(self, personality: Personality, chat: ChatSession) -> BttfTriviaData:
+    def start_quiz(self, personality: Personality, chat: ChatSession) -> BttfTriviaData:
         context = self.wiki_client.get_random_bttf_facts()
 
         try:
@@ -56,7 +38,7 @@ class BttfTrivia:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_bttf_trivia(self, answer: int, quiz_data: BttfTriviaData, chat: ChatSession, user_id: Optional[str]) -> BttfTriviaResult:
+    def finish_quiz(self, answer: int, quiz_data: BttfTriviaData, chat: ChatSession, user_id: Optional[str]) -> BttfTriviaResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 

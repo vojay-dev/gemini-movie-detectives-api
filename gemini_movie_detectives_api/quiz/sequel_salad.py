@@ -8,34 +8,16 @@ from pydantic_core import from_json
 from starlette import status
 from vertexai.generative_models import ChatSession
 
-from gemini_movie_detectives_api.gemini import GeminiClient
-from gemini_movie_detectives_api.imagen import ImagenClient
 from gemini_movie_detectives_api.model import SequelSaladData, SequelSaladGeminiQuestion, \
     SequelSaladResult, SequelSaladGeminiAnswer, Personality, QuizType
-from gemini_movie_detectives_api.speech import SpeechClient
-from gemini_movie_detectives_api.storage import FirestoreClient
-from gemini_movie_detectives_api.template import TemplateManager
+from gemini_movie_detectives_api.quiz.base import AbstractQuiz
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class SequelSalad:
+class SequelSalad(AbstractQuiz[SequelSaladData, SequelSaladResult]):
 
-    def __init__(
-        self,
-        template_manager: TemplateManager,
-        gemini_client: GeminiClient,
-        imagen_client: ImagenClient,
-        speech_client: SpeechClient,
-        firestore_client: FirestoreClient
-    ):
-        self.template_manager = template_manager
-        self.gemini_client = gemini_client
-        self.imagen_client = imagen_client
-        self.speech_client = speech_client
-        self.firestore_client = firestore_client
-
-    def start_sequel_salad(self, personality: Personality, chat: ChatSession) -> SequelSaladData:
+    def start_quiz(self, personality: Personality, chat: ChatSession) -> SequelSaladData:
         try:
             franchise = random.choice(self.firestore_client.get_franchises())
             prompt = self._generate_question_prompt(
@@ -60,7 +42,7 @@ class SequelSalad:
         except BaseException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Internal server error: {e}')
 
-    def finish_sequel_salad(self, answer: str, quiz_data: SequelSaladData, chat: ChatSession, user_id: Optional[str]) -> SequelSaladResult:
+    def finish_quiz(self, answer: str, quiz_data: SequelSaladData, chat: ChatSession, user_id: Optional[str]) -> SequelSaladResult:
         try:
             prompt = self._generate_answer_prompt(answer=answer)
 
