@@ -38,11 +38,7 @@ from .wiki import WikiClient
 log_format = '%(log_color)s%(asctime)s [%(levelname)s] %(reset)s%(purple)s[%(name)s] %(reset)s%(blue)s%(message)s'
 handler = colorlog.StreamHandler()
 handler.setFormatter(colorlog.ColoredFormatter(log_format))
-
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[handler]
-)
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 logger: logging.Logger = logging.getLogger(__name__)
 
