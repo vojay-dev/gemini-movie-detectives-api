@@ -1,4 +1,5 @@
 import logging
+import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -33,6 +34,11 @@ from .template import TemplateManager
 from .tmdb import TmdbClient
 from .wiki import WikiClient
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger: logging.Logger = logging.getLogger(__name__)
 
 

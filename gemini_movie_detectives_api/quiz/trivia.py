@@ -42,6 +42,8 @@ class Trivia(AbstractQuiz[TriviaData, TriviaResult]):
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_question = self._parse_gemini_question(gemini_reply)
 
+            logger.info('correct answer: %s', gemini_question.correct_answer)
+
             return TriviaData(
                 question=gemini_question,
                 movie=movie,

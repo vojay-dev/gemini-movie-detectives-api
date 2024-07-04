@@ -10,7 +10,7 @@ run:
 
 .PHONY: test
 test:
-	poetry run python -m unittest -v
+	poetry run python -m pytest tests/ -v -Wignore
 
 .PHONY: ruff
 ruff:

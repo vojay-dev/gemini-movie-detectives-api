@@ -31,6 +31,8 @@ class SequelSalad(AbstractQuiz[SequelSaladData, SequelSaladResult]):
 
             poster = self.imagen_client.generate_image(gemini_question.poster_prompt)
 
+            logger.info('correct answer: %s', franchise)
+
             return SequelSaladData(
                 question=gemini_question,
                 franchise=franchise,

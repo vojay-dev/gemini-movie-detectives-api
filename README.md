@@ -65,8 +65,12 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
 - [Pydantic](https://docs.pydantic.dev/latest/) for data modeling and validation
 - [Poetry](https://python-poetry.org/) for dependency management
 - [Docker](https://www.docker.com/) for deployment
+- [Firestore](https://firebase.google.com/docs/firestore) for storing user data, quiz usage and limit management as well as managing the list of franchises for the Sequel Salad game mode
+- [Firebase](https://firebase.google.com/) for user authentication
 - [TMDB API](https://www.themoviedb.org/) for movie data
-- [VertexAI](https://cloud.google.com/vertex-ai) and [Gemini](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini) for generating quiz questions and evaluating answers
+- [Wikipedia](https://pypi.org/project/wikipedia/) for fetching data from Wikipedia to add more context to the generation process
+- [Gemini](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini) via [VertexAI](https://cloud.google.com/vertex-ai) for generating quiz questions and evaluating answers
+- [Imagen](https://imagen.research.google/) via [VertexAI](https://cloud.google.com/vertex-ai) for generating fake movie posters
 - [Ruff](https://docs.astral.sh/ruff/) as linter and code formatter together with [pre-commit](https://pre-commit.com/) hooks
 - Github Actions to automatically run tests and linter on every push
 

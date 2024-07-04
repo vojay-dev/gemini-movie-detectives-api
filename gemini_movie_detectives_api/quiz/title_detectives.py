@@ -46,6 +46,8 @@ class TitleDetectives(AbstractQuiz[TitleDetectivesData, TitleDetectivesResult]):
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_question = self._parse_gemini_question(gemini_reply)
 
+            logger.info('correct answer: %s', movie['title'])
+
             return TitleDetectivesData(
                 question=gemini_question,
                 movie=movie,

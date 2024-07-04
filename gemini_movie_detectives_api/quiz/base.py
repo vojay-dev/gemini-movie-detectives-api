@@ -1,4 +1,3 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional, TypeVar, Generic
 
@@ -12,8 +11,6 @@ from gemini_movie_detectives_api.storage import FirestoreClient
 from gemini_movie_detectives_api.template import TemplateManager
 from gemini_movie_detectives_api.tmdb import TmdbClient
 from gemini_movie_detectives_api.wiki import WikiClient
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 R = TypeVar('R')
