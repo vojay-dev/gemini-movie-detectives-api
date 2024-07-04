@@ -1,7 +1,5 @@
 # Gemini Movie Detectives API
 
-**This project was created as part of the [Google AI Hackathon 2024](https://googleai.devpost.com/)**.
-
 ![logo](doc/logo.png)
 
 Gemini Movie Detectives is a project aimed at leveraging the power of the Gemini Pro model via VertexAI to

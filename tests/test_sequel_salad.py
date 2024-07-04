@@ -20,10 +20,9 @@ class TestSequelSalad(unittest.TestCase):
         chat_session = Mock()
 
         franchises = ['franchise1', 'franchise2']
+
         firestore_client.get_franchises.return_value = franchises
-
         gemini_client.get_chat_response.return_value = '{"sequel_plot": "plot", "sequel_title": "title", "poster_prompt": "prompt"}'
-
         speech_client.synthesize_to_file.return_value = 'audio.mp3'
         imagen_client.generate_image.return_value = 'poster.jpg'
 
