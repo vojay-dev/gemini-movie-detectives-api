@@ -22,6 +22,7 @@ apscheduler = "^3.10.4"
 firebase-admin = "^6.5.0"
 wikipedia = "^1.4.0"
 pytest = "^8.2.2"
+colorlog = "^6.8.2"
 
 
 [build-system]

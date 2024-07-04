@@ -1,5 +1,4 @@
 import logging
-import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -9,6 +8,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
+import colorlog
 from cachetools import TTLCache
 from fastapi import FastAPI, Depends
 from fastapi import HTTPException, status
@@ -34,11 +34,16 @@ from .template import TemplateManager
 from .tmdb import TmdbClient
 from .wiki import WikiClient
 
+# setup logging
+log_format = '%(log_color)s%(asctime)s [%(levelname)s] %(reset)s%(purple)s[%(name)s] %(reset)s%(blue)s%(message)s'
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(log_format))
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[handler]
 )
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 
