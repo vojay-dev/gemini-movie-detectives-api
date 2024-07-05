@@ -30,7 +30,7 @@ or languages is as easy as adding more Jinja template modules. With very little 
 full game experience, reducing the effort for developers. Try it yourself and change the AI personality
 in the quiz configuration.
 
-![demo](doc/mobile-browser-demo.png)
+![demo](doc/mockup.png)
 
 Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
 
@@ -72,7 +72,7 @@ Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie
 - [Ruff](https://docs.astral.sh/ruff/) as linter and code formatter together with [pre-commit](https://pre-commit.com/) hooks
 - Github Actions to automatically run tests and linter on every push
 
-![system overview](doc/system-overview.png)
+![system overview](doc/architecture.png)
 *Movie Detectives - System Overview*
 
 ## Project setup
