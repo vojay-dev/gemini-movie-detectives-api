@@ -86,10 +86,14 @@ class FirestoreClient:
                 user_data = user_doc.to_dict()
 
                 match quiz_type:
-                    case QuizType.TITLE_DETECTIVES: user_data['games_title_detectives'] += 1
-                    case QuizType.SEQUEL_SALAD: user_data['games_sequel_salad'] += 1
-                    case QuizType.BTTF_TRIVIA: user_data['games_bttf_trivia'] += 1
-                    case QuizType.TRIVIA: user_data['games_trivia'] += 1
+                    case QuizType.TITLE_DETECTIVES:
+                        user_data['games_title_detectives'] += 1
+                    case QuizType.SEQUEL_SALAD:
+                        user_data['games_sequel_salad'] += 1
+                    case QuizType.BTTF_TRIVIA:
+                        user_data['games_bttf_trivia'] += 1
+                    case QuizType.TRIVIA:
+                        user_data['games_trivia'] += 1
 
                 user_data['games_total'] += 1
                 user_ref.update(user_data)
@@ -105,10 +109,14 @@ class FirestoreClient:
                 user_data = user_doc.to_dict()
 
                 match quiz_type:
-                    case QuizType.TITLE_DETECTIVES: user_data['score_title_detectives'] += points
-                    case QuizType.SEQUEL_SALAD: user_data['score_sequel_salad'] += points
-                    case QuizType.BTTF_TRIVIA: user_data['score_bttf_trivia'] += points
-                    case QuizType.TRIVIA: user_data['score_trivia'] += points
+                    case QuizType.TITLE_DETECTIVES:
+                        user_data['score_title_detectives'] += points
+                    case QuizType.SEQUEL_SALAD:
+                        user_data['score_sequel_salad'] += points
+                    case QuizType.BTTF_TRIVIA:
+                        user_data['score_bttf_trivia'] += points
+                    case QuizType.TRIVIA:
+                        user_data['score_trivia'] += points
 
                 user_data['score_total'] += points
                 user_ref.update(user_data)

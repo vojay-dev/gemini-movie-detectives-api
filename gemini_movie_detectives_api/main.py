@@ -192,11 +192,16 @@ def start_quiz(quiz_type: QuizType, request: StartQuizRequest) -> StartQuizRespo
     chat = gemini_client.start_chat()
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: quiz_data = title_detectives.start_quiz(personality, chat)
-        case QuizType.SEQUEL_SALAD: quiz_data = sequel_salad.start_quiz(personality, chat)
-        case QuizType.BTTF_TRIVIA: quiz_data = bttf_trivia.start_quiz(personality, chat)
-        case QuizType.TRIVIA: quiz_data = trivia.start_quiz(personality, chat)
-        case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
+        case QuizType.TITLE_DETECTIVES:
+            quiz_data = title_detectives.start_quiz(personality, chat)
+        case QuizType.SEQUEL_SALAD:
+            quiz_data = sequel_salad.start_quiz(personality, chat)
+        case QuizType.BTTF_TRIVIA:
+            quiz_data = bttf_trivia.start_quiz(personality, chat)
+        case QuizType.TRIVIA:
+            quiz_data = trivia.start_quiz(personality, chat)
+        case _:
+            raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     session_cache[quiz_id] = SessionData(
         quiz_id=quiz_id,
@@ -236,11 +241,16 @@ def finish_quiz(quiz_id: str, request: FinishQuizRequest, user_id: Optional[str]
     del session_cache[quiz_id]
 
     match quiz_type:
-        case QuizType.TITLE_DETECTIVES: result = title_detectives.finish_quiz(answer, quiz_data, chat, user_id)
-        case QuizType.SEQUEL_SALAD: result = sequel_salad.finish_quiz(answer, quiz_data, chat, user_id)
-        case QuizType.BTTF_TRIVIA: result = bttf_trivia.finish_quiz(answer, quiz_data, chat, user_id)
-        case QuizType.TRIVIA: result = trivia.finish_quiz(answer, quiz_data, chat, user_id)
-        case _: raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
+        case QuizType.TITLE_DETECTIVES:
+            result = title_detectives.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.SEQUEL_SALAD:
+            result = sequel_salad.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.BTTF_TRIVIA:
+            result = bttf_trivia.finish_quiz(answer, quiz_data, chat, user_id)
+        case QuizType.TRIVIA:
+            result = trivia.finish_quiz(answer, quiz_data, chat, user_id)
+        case _:
+            raise HTTPException(status_code=400, detail=f'Quiz type {quiz_type} is not supported')
 
     return FinishQuizResponse(
         quiz_id=quiz_id,
@@ -259,7 +269,7 @@ async def get_audio(file_id: str):
 
 
 @app.get('/images/{file_id}.png', response_class=FileResponse)
-async def get_audio(file_id: str):
+async def get_image(file_id: str):
     image_file_path = Path(f'{imagen_client.tmp_images_dir}/{file_id}.png')
 
     if not image_file_path.exists():
@@ -269,7 +279,7 @@ async def get_audio(file_id: str):
 
 
 @app.get('/profile')
-async def get_audio(user_id: Optional[str] = Depends(firestore_client.get_current_user)):
+async def get_profile(user_id: Optional[str] = Depends(firestore_client.get_current_user)):
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Unauthorized')
 
