@@ -1,9 +1,28 @@
+.PHONY: all
 all:
-	@echo "see README.md"
+	@echo "Run make help to see available commands"
+
+.PHONY: help
+help:
+	@echo "Available commands:"
+	@echo "  make .venv          - Install dependencies using Poetry"
+	@echo "  make run            - Run service locally"
+	@echo "  make test           - Run tests"
+	@echo "  make ruff           - Run linter"
+	@echo "  make check          - Run tests and linter"
+	@echo "  make docker-build   - Build Docker image"
+	@echo "  make docker-start   - Start Docker container"
+	@echo "  make docker-stop    - Stop Docker container"
+	@echo "  make docker-logs    - View Docker container logs"
+	@echo "  make clean          - Remove build artifact"
+	@echo "  make build          - Build deployable artifact"
 
 # Install dependencies
 .venv:
+	@command -v poetry >/dev/null 2>&1 || { echo >&2 "Poetry is not installed"; exit 1; }
+	poetry config virtualenvs.in-project true --local
 	poetry install
+	@echo "Virtual env was created within project dir as .venv"
 
 # Run service locally
 .PHONY: run
@@ -19,6 +38,9 @@ test:
 ruff:
 	poetry run ruff check --fix
 
+.PHONY: check
+check: test ruff
+
 # Docker interaction to build image and run service with Docker
 .PHONY: docker-build
 docker-build:
@@ -31,7 +53,20 @@ docker-start: docker-build
 
 .PHONY: docker-stop
 docker-stop:
-	docker stop gemini-movie-detectives-api
+	@if [ $$(docker ps -q -f name=gemini-movie-detectives-api) ]; then \
+		echo "Stopping gemini-movie-detectives-api container..."; \
+		docker stop gemini-movie-detectives-api; \
+	else \
+		echo "Container gemini-movie-detectives-api is not running"; \
+	fi
+
+.PHONY: docker-logs
+docker-logs:
+	@if [ $$(docker ps -q -f name=gemini-movie-detectives-api) ]; then \
+		docker logs -f gemini-movie-detectives-api; \
+	else \
+		echo "Container gemini-movie-detectives-api is not running"; \
+	fi
 
 # Remove existing build artifact
 .PHONY: clean
