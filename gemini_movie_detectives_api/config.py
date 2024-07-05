@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     gcp_service_account_file: str
     firebase_service_account_file: str
     quiz_max_retries: int = 4
+    limits_reset_password: str = 'secret'
 
 
 def load_tmdb_images_config(settings: Settings) -> TmdbImagesConfig:

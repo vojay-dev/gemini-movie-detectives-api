@@ -23,7 +23,7 @@ from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
 from .gemini import GeminiClient
 from .imagen import ImagenClient
 from .model import SessionData, FinishQuizResponse, QuizType, StartQuizResponse, FinishQuizRequest, StartQuizRequest, \
-    LimitsResponse
+    LimitsResponse, ResetLimitsRequest
 from .quiz.bttf_trivia import BttfTrivia
 from .quiz.sequel_salad import SequelSalad
 from .quiz.title_detectives import TitleDetectives
@@ -165,12 +165,20 @@ async def get_random_movie(page_min: int = 1, page_max: int = 3, vote_avg_min: f
 
 
 @app.get('/limits')
-async def get_limit():
+async def get_limits() -> LimitsResponse:
     return LimitsResponse(
         limits=firestore_client.get_limits(),
         usage_counts=firestore_client.get_usage_counts(),
         current_date=datetime.now()
     )
+
+
+@app.post('/limits/reset')
+async def reset_limits(reset_limits_request: ResetLimitsRequest):
+    if reset_limits_request.password != settings.limits_reset_password:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Unauthorized')
+
+    firestore_client.reset_usage_counts()
 
 
 @app.post('/quiz/{quiz_type}')

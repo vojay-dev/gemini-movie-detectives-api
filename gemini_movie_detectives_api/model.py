@@ -169,6 +169,10 @@ class SessionResponse(BaseModel):
     started_at: datetime
 
 
+class ResetLimitsRequest(BaseModel):
+    password: str
+
+
 class LimitsResponse(BaseModel):
     limits: dict
     usage_counts: dict

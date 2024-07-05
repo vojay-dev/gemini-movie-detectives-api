@@ -161,6 +161,14 @@ class FirestoreClient:
 
         return self._update_usage_count(transaction, self.get_limits(), quiz_type, usage_ref)
 
+    def reset_usage_counts(self) -> None:
+        today = datetime.now(pytz.utc).date().isoformat()
+        usage_ref = self.firestore_client.collection('limits').document(f'usage_{today}')
+        usage_doc = usage_ref.get()
+
+        if usage_doc.exists:
+            usage_ref.delete()
+
     def _init_franchises(self) -> List[str]:
         franchises = ['Harry Potter', 'Star Wars', 'Marvel Cinematic Universe', 'The Lord of the Rings', 'James Bond']
         franchises_ref = self.firestore_client.collection('movie-data').document('franchises')
