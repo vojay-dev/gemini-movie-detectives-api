@@ -1,9 +1,20 @@
+define MOVIE_DETECTIVES_LOGO
+   __  __            _        ____       _            _   _
+  |  \/  | _____   _(_) ___  |  _ \  ___| |_ ___  ___| |_(_)_   _____  ___
+  | |\/| |/ _ \ \ / / |/ _ \ | | | |/ _ \ __/ _ \/ __| __| \ \ / / _ \/ __|
+  | |  | | (_) \ V /| |  __/ | |_| |  __/ ||  __/ (__| |_| |\ V /  __/\__ |
+  |_|  |_|\___/ \_/ |_|\___| |____/ \___|\__\___|\___|\__|_| \_/ \___||___/
+endef
+export MOVIE_DETECTIVES_LOGO
+
 .PHONY: all
 all:
+	@echo "$$MOVIE_DETECTIVES_LOGO"
 	@echo "Run make help to see available commands"
 
 .PHONY: help
 help:
+	@echo "$$MOVIE_DETECTIVES_LOGO"
 	@echo "Available commands:"
 	@echo "  make .venv          - Install dependencies using Poetry"
 	@echo "  make run            - Run service locally"
