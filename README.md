@@ -2,17 +2,33 @@
 
 ![logo](doc/logo.png)
 
-Gemini Movie Detectives is a project aimed at leveraging the power of the Gemini Pro model via VertexAI to
-create an engaging quiz game using the latest movie data from The Movie Database (TMDB).
+Gemini Movie Detectives harnesses Google's AI to revolutionize educational gaming, transforming movie trivia
+into a proof-of-concept gateway for AI-driven, adaptive learning across all subjects, challenging your inner
+movie nerd while showcasing how AI can reshape education in schools and universities.
 
-Try it yourself: [movie-detectives.com](https://movie-detectives.com/)
+**Try it yourself**: [movie-detectives.com](https://movie-detectives.com/)
 
 ## Backend
 
 The backend infrastructure is built with FastAPI and Python, employing the Retrieval-Augmented Generation (RAG)
 methodology to enrich queries with real-time metadata. Utilizing Jinja templating, the backend modularizes
 prompt generation into base, personality, and data enhancement templates, enabling the generation of accurate
-and engaging quiz questions.
+and engaging quiz questions in different game modes. Each game mode uses a different combination of data source
+showcasing the broad range of possibilities how to employ advanced Gemini applications.
+
+In addition to Gemini, the application leverages Google's state-of-the-art Text-to-Speech AI to synthesize quiz
+questions, dramatically enhancing the immersive atmosphere of a professional trivia game show. Moreover, the
+Sequel Salad game mode demonstrates the power of AI integration by utilizing Gemini to generate creative prompts.
+These prompts are then seamlessly fed into Google's cutting-edge Imagen text-to-image diffusion model, producing
+fake movie posters. This sophisticated interplay of various AI models showcases the limitless potential for
+creating captivating and dynamic game experiences, pushing the boundaries of what's possible in interactive
+entertainment.
+
+The application's infrastructure is further strengthened by the integration of Google Firebase. This integration
+enables secure user authentication, facilitating personalized interactions within the app. Firestore is used to
+store and manage essential user data, powering the dynamic rendering of user profiles with game statistics.
+Additionally, it handles crucial metadata, including movie franchise information and game mode usage metrics
+together with configurable limits, allowing for precise control over daily operational costs.
 
 ## Frontend
 
@@ -26,54 +42,63 @@ In Movie Detectives, quiz answers are interpreted by the Language Model (LLM) on
 scoring and personalized responses. This showcases the potential of integrating LLM with RAG in game design and
 development, paving the way for truly individualized gaming experiences. Furthermore, it demonstrates the
 potential for creating engaging quiz trivia or educational games by involving LLM. Adding and changing personalities
-or languages is as easy as adding more Jinja template modules. With very little effort, this can change the
-full game experience, reducing the effort for developers. Try it yourself and change the AI personality
-in the quiz configuration.
+is as easy as adding more Jinja template modules. With very little effort, this can change the full game experience,
+reducing the effort for developers. Try it yourself and change the AI personality in the quiz configuration.
 
-![demo](doc/mockup.png)
+Movie Detectives tackles the challenge of maintaining student interest, improving knowledge retention, and making
+learning enjoyable. It's not just a movie quiz; it’s a glimpse into AI-enhanced education, pushing boundaries
+for accessible, engaging, and effective learning experiences.
 
-Frontend: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
+![mockup](doc/mockup.png)
 
-- [Tech stack and project overview](#tech-stack-and-project-overview)
-- [Project setup](#project-setup)
-- [Configuration](#configuration)
-- [Docker](#docker)
-  - [Build](#build)
-  - [Run](#run)
-  - [Save image for deployment](#save-image-for-deployment)
-- [API example usage](#api-example-usage)
-  - [Get a list of movies](#get-a-list-of-movies)
-  - [Get a customized list of movies](#get-a-customized-list-of-movies)
-  - [Get a random movie with more details](#get-a-random-movie-with-more-details)
-  - [Start a quiz](#start-a-quiz)
-    - [Start a quiz with default configuration](#start-a-quiz-with-default-configuration)
-    - [Data validation](#data-validation)
-  - [Send answer and finish a quiz](#send-answer-and-finish-a-quiz)
-- [Rate limit](#rate-limit)
-- [Personalities](#personalities)
-  - [Example: Santa Claus personality](#example-usage-santa-claus-personality)
-- [Languages](#languages)
-  - [Example: German language](#example-usage-german-language)
+---
+
+## Examples
+
+![demo bttf trivia](doc/demo-bttf-trivia.png)
+*Game mode: Back to the Future Trivia*
+
+![demo profile](doc/demo-profile.png)
+*User profile*
+
+![demo sequel salad](doc/demo-sequel-salad.png)
+*Game mode: Sequel Salad*
+
+---
+
+**Frontend**: [gemini-movie-detectives-ui](https://github.com/vojay-dev/gemini-movie-detectives-ui)
 
 ## Tech stack and project overview
 
 - Python 3.12 + [FastAPI](https://fastapi.tiangolo.com/) API development
-- [httpx](https://www.python-httpx.org/) for TMDB integration
-- [Jinja](https://jinja.palletsprojects.com/) templating for modular prompt generation
+- [httpx](https://www.python-httpx.org/) for TMDB client implementation
+- [Jinja](https://jinja.palletsprojects.com/) templating for modular prompt generation including personalities
 - [Pydantic](https://docs.pydantic.dev/latest/) for data modeling and validation
 - [Poetry](https://python-poetry.org/) for dependency management
 - [Docker](https://www.docker.com/) for deployment
 - [Firestore](https://firebase.google.com/docs/firestore) for storing user data, quiz usage and limit management as well as managing the list of franchises for the Sequel Salad game mode
 - [Firebase](https://firebase.google.com/) for user authentication
-- [TMDB API](https://www.themoviedb.org/) for movie data
-- [Wikipedia](https://pypi.org/project/wikipedia/) for fetching data from Wikipedia to add more context to the generation process
+- [TMDB API](https://www.themoviedb.org/) for movie metadata
+- [Wikipedia](https://pypi.org/project/wikipedia/) for fetching data from Wikipedia to add more context to the generation process, especially for movie fun facts and Back to the Future trivia
 - [Gemini](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini) via [VertexAI](https://cloud.google.com/vertex-ai) for generating quiz questions and evaluating answers
 - [Imagen](https://imagen.research.google/) via [VertexAI](https://cloud.google.com/vertex-ai) for generating fake movie posters
 - [Ruff](https://docs.astral.sh/ruff/) as linter and code formatter together with [pre-commit](https://pre-commit.com/) hooks
-- Github Actions to automatically run tests and linter on every push
+- [Github Actions](https://github.com/features/actions) to automatically run tests and linter on every push
 
 ![system overview](doc/architecture.png)
 *Movie Detectives - System Overview*
+
+## Makefile
+
+The project includes a `Makefile` with common tasks like setting up the virtual environment with Poetry, running the
+service locally and within Docker, running test, linter and more. Simply run:
+```sh
+make help
+```
+to get an overview of all available tasks.
+
+![make help](doc/make-help.png)
+*make help*
 
 ## Project setup
 
@@ -88,9 +113,10 @@ poetry install
 ```
 
 **Run**:
+
+*Please check the Configuration section to ensure all requirements are met.*
 ```sh
-source .venv/bin/activate
-fastapi dev gemini_movie_detectives_api/main.py
+poetry run fastapi dev gemini_movie_detectives_api/main.py
 curl -s localhost:8000/movies | jq .
 ```
 
@@ -99,8 +125,10 @@ curl -s localhost:8000/movies | jq .
 **Prerequisite**
 
 - TMDB API key ([can be generated for free](https://developer.themoviedb.org/docs/getting-started))
-- GCP project with VertexAI API enabled
+- GCP project with TTS and VertexAI API enabled and access to Gemini (`gemini-1.5-pro-001`) and Imagen (`imagegeneration@006`)
+- Firebase project with authentication and Firestore enabled
 - JSON credentials file for GCP Service Account with VertexAI permissions
+- JSON credentials file for Firebase Service Account with write permissions
 
 The API is configured via environment variables. If a `.env` file is present in the project root, it will be loaded
 automatically. The following variables must be set:
@@ -109,15 +137,22 @@ automatically. The following variables must be set:
 - `GCP_PROJECT_ID`: The ID of the Google Cloud Platform (GCP) project used for VertexAI and Gemini.
 - `GCP_LOCATION`: The location used for prediction processes.
 - `GCP_SERVICE_ACCOUNT_FILE`: The path to the service account file used for authentication with GCP.
+- `FIREBASE_SERVICE_ACCOUNT_FILE`: The path to the service account file used for authentication with Firebase.
 
 There are more config variables with defaults, which can be used to adjust the default API behavior.
 
+The necessary documents within Firestore are created automatically when the API is started for the first time. The
+limits and franchises can be adjusted in the Firestore console.
+
+![firestore](doc/firestore.png)
+
 ## Docker
+
+All Docker commands are also encapsulated in the `Makefile` for convenience.
 
 ### Build
 
 ```sh
-docker image rm gemini-movie-detectives-api
 docker build -t gemini-movie-detectives-api .
 ```
 
@@ -143,37 +178,7 @@ docker save gemini-movie-detectives-api:latest | gzip > gemini-movie-detectives-
 curl -s localhost:8000/movies | jq .
 ```
 
-### Get a customized list of movies
-
-```sh
-curl -s "localhost:8000/movies?page=3&vote-avg-min=8&vote-count-min=1000" | jq ".[0]"
-```
-
-```json
-{
-  "adult": false,
-  "backdrop_path": "/eHMh7kChaNeD4VTdMCXLJbRTzcI.jpg",
-  "genre_ids": [
-    18,
-    36,
-    10752
-  ],
-  "id": 753342,
-  "original_language": "en",
-  "original_title": "Napoleon",
-  "overview": "An epic that details the checkered rise and fall of French Emperor Napoleon Bonaparte and his relentless journey to power through the prism of his addictive, volatile relationship with his wife, Josephine.",
-  "popularity": 193.344,
-  "poster_path": "/vcZWJGvB5xydWuUO1vaTLI82tGi.jpg",
-  "release_date": "2023-11-22",
-  "title": "Napoleon",
-  "video": false,
-  "vote_average": 6.484,
-  "vote_count": 1953,
-  "poster_url": "https://image.tmdb.org/t/p/original/vcZWJGvB5xydWuUO1vaTLI82tGi.jpg"
-}
-```
-
-## Get a random movie with more details
+### Get a random movie
 
 ```sh
 curl -s localhost:8000/movies/random | jq .
@@ -243,174 +248,63 @@ curl -s localhost:8000/movies/random | jq .
 }
 ```
 
-### Start a quiz
-
-```sh
-curl -s -X POST localhost:8000/quiz \
-  -H 'Content-Type: application/json' \
-  -d '{"vote_avg_min": 5.0, "vote_count_min": 1000.0, "popularity": 3}' | jq .
-```
-
-```json
-{
-  "quiz_id": "84c19425-c179-4198-9773-a8a1b71c9605",
-  "question": {
-    "question": "Imagine a family road trip, but not just any road trip, a life-or-death race against time! A giant space rock is hurtling towards Earth, and this family is trying to outrun the end of the world. Along the way, they witness cities crumbling like sandcastles and meet people who are both kind and cruel. Can they make it to safety in time?",
-    "hint1": "The movie is all about a family trying to survive a global catastrophe.",
-    "hint2": "Gr_e_l_nd"
-  },
-  "movie": {...}
-}
-```
-
-#### Start a quiz with default configuration
-
-```sh
-curl -s -X POST localhost:8000/quiz | jq .
-```
-
-#### Data validation
-
-The API also validates the input data using Pydantic. If the input data is invalid, the API will return an error message:
-
-```sh
-curl -s -X POST localhost:8000/quiz \
-  -H 'Content-Type: application/json' \
-  -d '{"vote_avg_min": 11.0}' | jq .
-```
-
-```json
-{
-  "detail": [
-    {
-      "type": "less_than_equal",
-      "loc": [
-        "body",
-        "vote_avg_min"
-      ],
-      "msg": "Input should be less than or equal to 9",
-      "input": 11.0,
-      "ctx": {
-        "le": 9.0
-      },
-      "url": "https://errors.pydantic.dev/2.6/v/less_than_equal"
-    }
-  ]
-}
-```
-
-### Send answer and finish a quiz
-
-```sh
-curl -s -X POST localhost:8000/quiz/84c19425-c179-4198-9773-a8a1b71c9605/answer \
-  -H 'Content-Type: application/json' \
-  -d '{"answer": "Greenland"}' | jq .
-```
-
-```json
-{
-  "quiz_id": "84c19425-c179-4198-9773-a8a1b71c9605",
-  "question": {...},
-  "movie": {...},
-  "user_answer": "Greenland",
-  "result": {
-    "points": "3",
-    "answer": "Congratulations! You got it! Greenland is the movie we were looking for. You're like a human GPS, always finding the right way!"
-  }
-}
-```
-
-## Rate limit
-
-In order to control costs and prevent abuse, the API offers a way to limit the number of quiz sessions per day.
-
-There is a default value which can be overwritten by using an environment variable called `QUIZ_RATE_LIMIT`. It is reset
-every day at midnight. The API also has an endpoint to fetch details about the limit and current usage:
-
-```sh
-curl -s localhost:8000/limit | jq .
-```
-
-```json
-{
-  "daily_limit": 100,
-  "quiz_count": 0,
-  "last_reset_time": "2024-04-06T12:39:29.857703",
-  "last_reset_date": "2024-04-06",
-  "current_date": "2024-04-06"
-}
-```
-
-Once a quiz is started and `current_date` is greater than `last_reset_date`, the `quiz_count` is reset to 0.
-
-# Personalities
-
-Due to the modularity of the prompt generation, it is possible to easily switch personalities of the quiz master. The
-personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personality/` directory.
-They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
-
-## Example: Santa Claus personality
-
-![santa claus](doc/santa-claus-personality.png)
-
-The following example shows how to switch to the Santa Claus / Christmas personality for a quiz:
-
-```sh
-curl -s -X POST localhost:8000/quiz \
-  -H 'Content-Type: application/json' \
-  -d '{"vote_avg_min": 5.0, "vote_count_min": 1000.0, "popularity": 3, "personality": "christmas"}' | jq .
-```
-
-```json
-{
-  "quiz_id": "e1d298c3-fcb0-4ebe-8836-a22a51f87dc6",
-  "question": {
-    "question": "Ho ho ho, this movie takes place in a world of dreams, just like the dreams children have on Christmas Eve after seeing Santa Claus! It's about a team who enters people's dreams to steal their secrets. Can you guess the movie? Merry Christmas!",
-    "hint1": "The main character is like a skilled elf, sneaking into people's minds instead of houses. ",
-    "hint2": "I_c_p_i_n "
-  },
-  "movie": {...}
-}
-```
-
-# Languages
-
-Due to the modularity of the prompt generation, it is also possible to easily switch the language of the game.
-Languages are defined in Jinja templates in the `gemini_movie_detectives_api/templates/language/` directory.
-They are managed by a `StrEnum` in `gemini_movie_detectives_api/prompt.py`, which makes it easy to extend.
-
-## Example: German language
-
-This example shows how to change the language for a quiz:
-
-```sh
-curl -s -X POST localhost:8000/quiz \
-  -H 'Content-Type: application/json' \
-  -d '{"vote_avg_min": 5.0, "vote_count_min": 1000.0, "popularity": 3, "language": "german"}' | jq .
-```
-
-```json
-{
-  "quiz_id": "7f5f8cf5-4ded-42d3-a6f0-976e4f096c0e",
-  "question": {
-    "question": "Stellt euch vor, es gäbe riesige Monster, die auf der Erde herumtrampeln, als wäre es ein Spielplatz! Einer ist ein echtes Urviech, eine Art wandelnde Riesenechse mit einem Atem, der so heiß ist, dass er euer Toastbrot in Sekundenschnelle rösten könnte. Der andere ist ein gigantischer Affe, der so stark ist, dass er Bäume ausreißt wie Gänseblümchen. Und jetzt ratet mal, was passiert? Die beiden geraten aneinander, wie zwei Kinder, die sich um das letzte Stück Kuchen streiten! Wer wird wohl gewinnen, die Riesenechse oder der Superaffe? Das ist die Frage, die sich die ganze Welt stellt! ",
-    "hint1": "Der Film spielt in einer Zeit, in der Monster auf der Erde wandeln.",
-    "hint2": "G_dz_ll_ vs. K_ng "
-  },
-  "movie": {...}
-}
-```
-
-# WIP - REFACTORING
-
-## Run quiz
+### Start a Title Detectives quiz
 
 ```sh
 curl -s -X POST localhost:8000/quiz/title-detectives \
   -H 'Content-Type: application/json' \
   -d '{"quiz_type": "title-detectives"}' | jq .
-
-curl -s -X POST localhost:8000/quiz/3a8c4315-1953-4796-a0b0-4b65415bdae8/answer \
-  -H 'Content-Type: application/json' \
-  -d '{"quiz_id": "3a8c4315-1953-4796-a0b0-4b65415bdae8", "answer": "Some Movie"}' | jq .
 ```
+
+```json
+{
+  "quiz_id": "70ce5970-65bc-40b4-8b72-31a618254c63",
+  "quiz_type": "title-detectives",
+  "quiz_data": {
+    "question": {
+      "question": "Yo, movie buffs! This one's gonna be lit! Think of a horror flick where some reckless teenagers think they've hit the jackpot by breaking into a blind man's crib. Little did they know, this dude's got some serious secrets hidden inside. What am I talking 'bout?",
+      "hint1": "This movie proves that sometimes, it's best to leave well enough alone.  Especially when it comes to messing with people's homes.",
+      "hint2": "D_n'_t B_e_t_e"
+    },
+    "movie": {...},
+    "speech": "/audio/fc481314-6074-4654-94d5-6e967f20a313.mp3"
+  }
+}
+```
+
+With the `speech` URL, you can get the result of the Google Text-to-Speech synthesis of the quiz question.
+
+```sh
+wget localhost:8000/audio/fc481314-6074-4654-94d5-6e967f20a313.mp3
+```
+
+Generated audio and image files are automatically deleted after 24 hours.
+
+### Send answer and finish a quiz
+
+```sh
+curl -s -X POST localhost:8000/quiz/70ce5970-65bc-40b4-8b72-31a618254c63/answer \
+  -H 'Content-Type: application/json' \
+  -d '{"quiz_id": "70ce5970-65bc-40b4-8b72-31a618254c63", "answer": "Don't Breathe"}' | jq .
+```
+
+## Rate limit
+
+In order to control costs and prevent abuse, the API offers a way to limit the number of quiz sessions per game mode
+and per day.
+
+The limits are managed in Firestore and can be adjusted in the Firestore console.
+
+## Cleanup
+
+The generated audio and image files by Google Text-to-Speech and Imagen are automatically deleted after 24 hours. The
+cleanup logic is handled in the `TempDirCleaner` class, which is scheduled via the `apscheduler` module.
+
+## Personalities
+
+Due to the modularity of the prompt generation, it is possible to easily switch personalities of the quiz master. The
+personalities are defined in Jinja templates in the `gemini_movie_detectives_api/templates/personality/` directory.
+
+### Example: Dad Jokes Dad personality
+
+![dad jokes](doc/sequel-salad-dad-jokes.png)
