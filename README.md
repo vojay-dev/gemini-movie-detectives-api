@@ -170,6 +170,39 @@ docker stop gemini-movie-detectives-api
 docker save gemini-movie-detectives-api:latest | gzip > gemini-movie-detectives-api_latest.tar.gz
 ```
 
+## Gemini interaction
+
+Gemini interaction is encapsulated in the `GeminiClient` class. To ensure a high quality of prompt responses and to
+avoid unnecessary parsing issues. The `GeminiClient` class uses the Gemini JSON format mode.
+
+See: [https://ai.google.dev/gemini-api/docs/api-overview#json](https://ai.google.dev/gemini-api/docs/api-overview#json)
+
+This ensures Gemini replies with valid JSON, whereas the schema is attached to the individual prompt, for example:
+```
+Reply using this JSON schema:
+
+{"question": str, "hint1": str, "hint2": str}
+
+- question: your generated question
+- hint1: The first hint to help the participants
+- hint2: The second hint to get the title more easily
+```
+
+This approach is then combined with Pydantic models to ensure the correctness of datatypes and the overall structure:
+```py
+    @staticmethod
+    def _parse_gemini_answer(gemini_reply: str) -> TitleDetectivesGeminiAnswer:
+        try:
+            return TitleDetectivesGeminiAnswer.model_validate(from_json(gemini_reply))
+        except Exception as e:
+            msg = f'Gemini replied with an unexpected format. Gemini reply: {gemini_reply}, error: {e}'
+            logger.warning(msg)
+            raise ValueError(msg)
+```
+
+This is a great example how to programatically interact with Gemini, ensure the quality of the responses and use a LLM
+to cover core business logic.
+
 ## API example usage
 
 ### Get a list of movies
