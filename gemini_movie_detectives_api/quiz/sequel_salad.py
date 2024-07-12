@@ -29,7 +29,7 @@ class SequelSalad(AbstractQuiz[SequelSaladData, SequelSaladResult]):
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_question = self._parse_gemini_question(gemini_reply)
 
-            poster = self.imagen_client.generate_image(gemini_question.poster_prompt)
+            poster = self.imagen_client.generate_image(gemini_question.poster_prompt, fallback=franchise)
 
             logger.info('correct answer: %s', franchise)
 
