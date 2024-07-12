@@ -146,6 +146,15 @@ limits and franchises can be adjusted in the Firestore console.
 
 ![firestore](doc/firestore.png)
 
+**Gemini model**
+
+The default model used for Gemini is `gemini-1.5-pro-001`. To use a different model, simply adjust the `GCP_GEMINI_MODEL`
+in the `.env` file. For this use-case, also the Flash model delivers good results and might be a cost efficient
+alternative.
+```
+GCP_GEMINI_MODEL=gemini-1.5-flash-001
+```
+
 ## Docker
 
 All Docker commands are also encapsulated in the `Makefile` for convenience.
