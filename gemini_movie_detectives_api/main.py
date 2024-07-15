@@ -14,9 +14,11 @@ from fastapi import FastAPI, Depends
 from fastapi import HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import credentials as fb_credentials
+from google.cloud.logging_v2.handlers import CloudLoggingHandler, setup_logging
 from google.oauth2 import service_account
 from google.oauth2.service_account import Credentials
 from starlette.responses import FileResponse
+import google.cloud.logging
 
 from .cleanup import TempDirCleaner
 from .config import Settings, TmdbImagesConfig, load_tmdb_images_config
@@ -71,8 +73,14 @@ cleaner = TempDirCleaner(
 # TMDB client
 tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_config())
 
-# GCP clients (Gemini, Imagen and Text-To-Speech)
+# GCP clients (Gemini, Imagen, Cloud Logging and Text-To-Speech)
 credentials: Credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
+
+if settings.gcp_cloud_logging_enabled:
+    client = google.cloud.logging.Client(credentials=credentials)
+    handler = CloudLoggingHandler(client)
+    setup_logging(handler)
+
 gemini_client: GeminiClient = GeminiClient(
     settings.gcp_project_id,
     settings.gcp_location,

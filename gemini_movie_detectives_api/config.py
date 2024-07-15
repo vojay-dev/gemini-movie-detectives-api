@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     gcp_project_id: str
     gcp_location: str
     gcp_service_account_file: str
+    gcp_cloud_logging_enabled: bool = False
     firebase_service_account_file: str
     quiz_max_retries: int = 4
     limits_reset_password: str = 'secret'

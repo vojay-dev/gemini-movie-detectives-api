@@ -155,6 +155,16 @@ alternative.
 GCP_GEMINI_MODEL=gemini-1.5-flash-001
 ```
 
+### Logging
+
+The API uses the Python logging module and optionally supports Cloud Logging to allow for log analysis and monitoring
+via Google Cloud. To enable Cloud Logging, set the `GCP_CLOUD_LOGGING_ENABLED` environment variable to `true`. Ensure
+that the provided Service Account, which belongs to the JSON credentials file set as `GCP_SERVICE_ACCOUNT_FILE`, has
+the necessary permissions (e.g. role: _Logs Writer_) to write logs to Cloud Logging.
+
+![Google Cloud Logging](doc/cloud-logging.png)
+*Google Cloud Logging*
+
 ## Docker
 
 All Docker commands are also encapsulated in the `Makefile` for convenience.
