@@ -76,7 +76,7 @@ tmdb_client: TmdbClient = TmdbClient(settings.tmdb_api_key, _get_tmdb_images_con
 # GCP clients (Gemini, Imagen, Cloud Logging and Text-To-Speech)
 credentials: Credentials = service_account.Credentials.from_service_account_file(settings.gcp_service_account_file)
 
-if settings.gcp_cloud_logging_enabled:
+if settings.gcp_cloud_logging_enabled:  # Google Cloud Logging can be enabled in the config
     client = google.cloud.logging.Client(credentials=credentials)
     handler = CloudLoggingHandler(client)
     setup_logging(handler)
@@ -107,10 +107,11 @@ wiki_client: WikiClient = WikiClient(tmdb_client)
 template_manager: TemplateManager = TemplateManager()
 
 # Quiz handlers
-title_detectives = TitleDetectives(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
-sequel_salad = SequelSalad(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
-bttf_trivia = BttfTrivia(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
-trivia = Trivia(template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
+args = (template_manager, gemini_client, imagen_client, speech_client, firestore_client, tmdb_client, wiki_client)
+title_detectives = TitleDetectives(*args)
+sequel_salad = SequelSalad(*args)
+bttf_trivia = BttfTrivia(*args)
+trivia = Trivia(*args)
 
 
 @asynccontextmanager
