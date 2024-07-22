@@ -42,13 +42,16 @@ class BttfTrivia(AbstractQuiz[BttfTriviaData, BttfTriviaResult]):
 
     def finish_quiz(self, answer: int, quiz_data: BttfTriviaData, chat: ChatSession, user_id: Optional[str]) -> BttfTriviaResult:
         try:
-            prompt = self._generate_answer_prompt(answer=answer)
+            is_correct_answer = answer == quiz_data.question.correct_answer
+            user_answer = getattr(quiz_data.question, f'option_{answer}')
+
+            prompt = self._generate_answer_prompt(answer=f'{user_answer} ({answer}) which is {"correct" if is_correct_answer else "incorrect"}')
 
             logger.debug('evaluating quiz answer with generated prompt: %s', prompt)
             gemini_reply = self.gemini_client.get_chat_response(chat, prompt)
             gemini_answer = self._parse_gemini_answer(gemini_reply)
 
-            points = 3 if answer == quiz_data.question.correct_answer else 0
+            points = 3 if is_correct_answer else 0
 
             if user_id:
                 self.firestore_client.inc_games(user_id, QuizType.BTTF_TRIVIA)
