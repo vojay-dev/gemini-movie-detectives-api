@@ -125,7 +125,7 @@ curl -s localhost:8000/movies | jq .
 **Prerequisite**
 
 - TMDB API key ([can be generated for free](https://developer.themoviedb.org/docs/getting-started))
-- GCP project with TTS and VertexAI API enabled and access to Gemini (`gemini-1.5-pro-001`) and Imagen (`imagegeneration@006`)
+- GCP project with TTS and VertexAI API enabled and access to Gemini (`gemini-1.5-pro-001` or `gemini-1.5-flash-001`) and Imagen (`imagegeneration@006`)
 - Firebase project with authentication and Firestore enabled
 - JSON credentials file for GCP Service Account with VertexAI permissions
 - JSON credentials file for Firebase Service Account with write permissions
