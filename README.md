@@ -11,7 +11,7 @@ movie nerd while showcasing how AI can reshape education in schools and universi
 ## Backend
 
 The backend infrastructure is built with FastAPI and Python, employing the Retrieval-Augmented Generation (RAG)
-methodology to enrich queries with real-time metadata. Utilizing Jinja templating, the backend modularizes
+methodology to enrich queries with real-time metadata. Utilizing Jinja templating, the backend modularize
 prompt generation into base, personality, and data enhancement templates, enabling the generation of accurate
 and engaging quiz questions in different game modes. Each game mode uses a different combination of data source
 showcasing the broad range of possibilities how to employ advanced Gemini applications.
@@ -149,7 +149,7 @@ limits and franchises can be adjusted in the Firestore console.
 **Gemini model**
 
 The default model used for Gemini is `gemini-1.5-pro-001`. To use a different model, simply adjust the `GCP_GEMINI_MODEL`
-in the `.env` file. For this use-case, also the Flash model delivers good results and might be a cost efficient
+in the `.env` file. For this use-case, also the Flash model delivers good results and might be a cost-efficient
 alternative.
 ```
 GCP_GEMINI_MODEL=gemini-1.5-flash-001
@@ -219,7 +219,7 @@ This approach is then combined with Pydantic models to ensure the correctness of
             raise ValueError(msg)
 ```
 
-This is a great example how to programatically interact with Gemini, ensure the quality of the responses and use a LLM
+This is a great example how to programmatically interact with Gemini, ensure the quality of the responses and use a LLM
 to cover core business logic.
 
 ## API example usage
