@@ -1,2 +1,5 @@
 .venv/
+.github/
+.git/
+doc/
 gemini-movie-detectives-api_latest.tar.gz

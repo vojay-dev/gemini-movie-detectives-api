@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     tmp_audio_dir: str = '/tmp/movie-detectives/audio'
     cleanup_interval_min: int = 10
     cleanup_file_max_age_sec: int = 3600
-    gcp_gemini_model: str = 'gemini-1.5-pro-001'
-    gcp_imagen_model: str = 'imagegeneration@006'
+    gcp_gemini_model: str = 'gemini-2.0-flash'
+    gcp_imagen_model: str = 'imagen-3.0-generate-002'
     gcp_tts_lang: str = 'en-US'
     gcp_tts_voice: str = 'en-US-Studio-Q'
     gcp_project_id: str
